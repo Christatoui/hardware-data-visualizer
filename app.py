@@ -68,26 +68,6 @@ def plot_top_requesters(df):
         else:
             st.info(f"No hardware request data found for {selected_requester}.")
 
-def plot_requests_by_weekday_monthly(df):
-    """Plots a line chart of requests by day of the week, with a separate line for each month."""
-    df['Weekday'] = df['Time'].dt.day_name()
-    df['Month_Name'] = df['Time'].dt.strftime('%B')
-    weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    
-    # Create a pivot table to get the counts
-    monthly_weekday_counts = df.groupby(['Month_Name', 'Weekday']).size().reset_index(name='counts')
-    monthly_weekday_counts['Weekday'] = pd.Categorical(monthly_weekday_counts['Weekday'], categories=weekday_order, ordered=True)
-    monthly_weekday_counts = monthly_weekday_counts.sort_values('Weekday')
-
-    fig, ax = plt.subplots(figsize=(15, 8))
-    sns.lineplot(data=monthly_weekday_counts, x='Weekday', y='counts', hue='Month_Name', ax=ax, marker='o')
-    
-    ax.set_title('Requests by Day of the Week (Monthly Comparison)', fontsize=16)
-    ax.set_xlabel('Day of the Week', fontsize=12)
-    ax.set_ylabel('Number of Requests', fontsize=12)
-    ax.legend(title='Month')
-    ax.grid(True)
-    st.pyplot(fig)
 
 def plot_requests_by_hour(df):
     """Plots a bar chart showing the percentage of requests between 7 AM and 6 PM."""
@@ -159,20 +139,20 @@ def plot_daily_requests_by_weekday(df):
                     
     st.pyplot(fig)
 
-def plot_hourly_requests_by_month(df):
-    """Plots a line chart comparing hourly request patterns across different months."""
-    df['Hour'] = df['Time'].dt.hour
-    df['Month_Name'] = df['Time'].dt.strftime('%B')
-    monthly_hourly_counts = df.groupby(['Month_Name', 'Hour']).size().unstack(fill_value=0)
+def plot_total_requests_per_month(df):
+    """Plots a bar chart of the total number of requests per month."""
+    df['Month'] = df['Time'].dt.to_period('M')
+    monthly_counts = df['Month'].value_counts().sort_index()
     
-    fig, ax = plt.subplots(figsize=(15, 8))
-    sns.lineplot(data=monthly_hourly_counts.T, dashes=False, ax=ax)
-    ax.set_title('Hourly Requests by Month', fontsize=16)
-    ax.set_xlabel('Hour of the Day', fontsize=12)
-    ax.set_ylabel('Number of Requests', fontsize=12)
-    ax.set_xticks(range(24))
-    ax.legend(title='Month')
-    ax.grid(True)
+    # Convert Period to string for plotting
+    monthly_counts.index = monthly_counts.index.strftime('%B %Y')
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.barplot(x=monthly_counts.index, y=monthly_counts.values, palette='cubehelix', ax=ax)
+    ax.set_title('Total Requests per Month', fontsize=16)
+    ax.set_xlabel('Month', fontsize=12)
+    ax.set_ylabel('Total Number of Requests', fontsize=12)
+    ax.tick_params(axis='x', rotation=45)
     st.pyplot(fig)
 
 def plot_hardware_specific_analysis(df):
@@ -249,10 +229,9 @@ if uploaded_file is not None:
         "Hardware Request Counts": plot_hardware_counts,
         "Top 10 Requesters": plot_top_requesters,
         "Analysis by Hardware Type": plot_hardware_specific_analysis,
-        "Requests by Weekday (Monthly)": plot_requests_by_weekday_monthly,
+        "Total Requests per Month": plot_total_requests_per_month,
         "Requests by Hour (%) Average": plot_requests_by_hour,
         "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
-        "Hourly Requests by Month": plot_hourly_requests_by_month,
     }
 
     selected_graph = st.sidebar.selectbox("Choose a graph to display", list(graph_options.keys()))
