@@ -380,11 +380,29 @@ if uploaded_file is not None:
                     daily_counts = daily_counts.reindex(pd.to_datetime(all_days_in_month), fill_value=0)
 
                     fig, ax = plt.subplots(figsize=(15, 6))
-                    sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
+                    bars = sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
                     ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
                     ax.set_xlabel('Date', fontsize=12)
                     ax.set_ylabel('Number of Requests', fontsize=12)
                     
+                    # Calculate weekly totals to find percentages
+                    daily_counts_df = daily_counts.reset_index()
+                    daily_counts_df.columns = ['Date', 'Count']
+                    daily_counts_df['Week'] = pd.to_datetime(daily_counts_df['Date']).dt.to_period('W')
+                    weekly_totals = daily_counts_df.groupby('Week')['Count'].transform('sum')
+                    
+                    # Avoid division by zero for weeks with no requests
+                    weekly_percentages = (daily_counts_df['Count'] / weekly_totals.replace(0, 1)) * 100
+
+                    # Add percentage labels on top of each bar
+                    for i, bar in enumerate(bars.patches):
+                        if bar.get_height() > 0: # Only label bars with requests
+                            ax.annotate(f'{weekly_percentages[i]:.1f}%',
+                                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                        ha='center', va='center',
+                                        size=8, xytext=(0, 8),
+                                        textcoords='offset points')
+
                     # Format the x-axis labels to show only Mondays
                     date_labels = [item.get_text() for item in ax.get_xticklabels()]
                     new_labels = [label if pd.to_datetime(label).weekday() == 0 else '' for label in date_labels]
