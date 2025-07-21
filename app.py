@@ -148,10 +148,19 @@ def plot_total_requests_per_month(df):
     monthly_counts.index = monthly_counts.index.strftime('%B %Y')
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x=monthly_counts.index, y=monthly_counts.values, palette='cubehelix', ax=ax)
+    bars = sns.barplot(x=monthly_counts.index, y=monthly_counts.values, palette='cubehelix', ax=ax)
     ax.set_title('Total Requests per Month', fontsize=16)
     ax.set_xlabel('Month', fontsize=12)
     ax.set_ylabel('Total Number of Requests', fontsize=12)
+    
+    # Add total number labels on top of each bar
+    for bar in bars.patches:
+        ax.annotate(f'{int(bar.get_height())}',
+                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                    ha='center', va='center',
+                    size=10, xytext=(0, 8),
+                    textcoords='offset points')
+
     ax.tick_params(axis='x', rotation=45)
     st.pyplot(fig)
 
