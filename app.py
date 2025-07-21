@@ -99,14 +99,18 @@ def plot_requests_by_hour(df):
         st.warning("No request data available between 7 AM and 6 PM.")
         return
 
-    hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True).sort_index() * 100
+    hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
+    # Ensure all hours from 7 to 18 are present, filling missing ones with 0
+    all_hours = pd.Index(range(7, 19), name="Hour")
+    hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
     
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='twilight', ax=ax)
     ax.set_title('Requests by Hour (%) Average (7 AM - 6 PM)', fontsize=16)
     ax.set_xlabel('Hour of the Day', fontsize=12)
     ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
-    ax.set_xticks(range(7, 19)) # Set ticks from 7 to 18
+    # Set the limits of the x-axis to trim empty space
+    ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
     st.pyplot(fig)
 
 def plot_daily_requests_by_weekday(df):
