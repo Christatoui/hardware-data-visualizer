@@ -105,10 +105,19 @@ def plot_requests_by_hour(df):
     hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
     
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='twilight', ax=ax)
+    bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='twilight', ax=ax)
     ax.set_title('Requests by Hour (%) Average (7 AM - 6 PM)', fontsize=16)
     ax.set_xlabel('Hour of the Day', fontsize=12)
     ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
+    
+    # Add percentage labels on top of each bar
+    for bar in bars.patches:
+        ax.annotate(f'{bar.get_height():.1f}%',
+                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                    ha='center', va='center',
+                    size=10, xytext=(0, 8),
+                    textcoords='offset points')
+
     # Set the limits of the x-axis to trim empty space
     ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
     st.pyplot(fig)
