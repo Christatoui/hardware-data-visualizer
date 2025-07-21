@@ -397,11 +397,20 @@ if uploaded_file is not None:
                     # Add percentage labels on top of each bar
                     for i, bar in enumerate(bars.patches):
                         if bar.get_height() > 0: # Only label bars with requests
+                            # Add percentage on top
                             ax.annotate(f'{weekly_percentages[i]:.1f}%',
                                         (bar.get_x() + bar.get_width() / 2, bar.get_height()),
                                         ha='center', va='center',
                                         size=8, xytext=(0, 8),
                                         textcoords='offset points')
+                            # Add two-letter weekday abbreviation at the bottom
+                            day_of_week = daily_counts.index[i].strftime('%a')[:2]
+                            ax.annotate(day_of_week,
+                                        (bar.get_x() + bar.get_width() / 2, 0),
+                                        ha='center', va='bottom',
+                                        size=7, xytext=(0, 2),
+                                        textcoords='offset points',
+                                        color='gray')
 
                     # Format the x-axis labels to show only Mondays
                     date_labels = [item.get_text() for item in ax.get_xticklabels()]
