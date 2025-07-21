@@ -26,6 +26,7 @@ def clean_data(df):
 
     df['Time'] = df['Time'].apply(parse_dates)
     df.dropna(subset=['Time'], inplace=True)
+    df = df[df['Time'].dt.year >= 2024]
     return df
 
 # --- Plotting Functions ---
