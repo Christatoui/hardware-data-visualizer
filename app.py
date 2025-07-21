@@ -69,19 +69,24 @@ def plot_top_requesters(df):
             st.info(f"No hardware request data found for {selected_requester}.")
 
 def plot_requests_by_weekday_monthly(df):
-    """Plots a grouped bar chart of requests by day of the week for each month."""
+    """Plots a line chart of requests by day of the week, with a separate line for each month."""
     df['Weekday'] = df['Time'].dt.day_name()
     df['Month_Name'] = df['Time'].dt.strftime('%B')
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    monthly_weekday_counts = df.groupby(['Month_Name', 'Weekday']).size().unstack(fill_value=0).reindex(columns=weekday_order)
     
-    fig, ax = plt.subplots(figsize=(18, 10))
-    monthly_weekday_counts.plot(kind='bar', ax=ax)
-    ax.set_title('Requests by Day of the Week for Each Month', fontsize=16)
-    ax.set_xlabel('Month', fontsize=12)
+    # Create a pivot table to get the counts
+    monthly_weekday_counts = df.groupby(['Month_Name', 'Weekday']).size().reset_index(name='counts')
+    monthly_weekday_counts['Weekday'] = pd.Categorical(monthly_weekday_counts['Weekday'], categories=weekday_order, ordered=True)
+    monthly_weekday_counts = monthly_weekday_counts.sort_values('Weekday')
+
+    fig, ax = plt.subplots(figsize=(15, 8))
+    sns.lineplot(data=monthly_weekday_counts, x='Weekday', y='counts', hue='Month_Name', ax=ax, marker='o')
+    
+    ax.set_title('Requests by Day of the Week (Monthly Comparison)', fontsize=16)
+    ax.set_xlabel('Day of the Week', fontsize=12)
     ax.set_ylabel('Number of Requests', fontsize=12)
-    ax.tick_params(axis='x', rotation=45)
-    ax.legend(title='Day of the Week')
+    ax.legend(title='Month')
+    ax.grid(True)
     st.pyplot(fig)
 
 def plot_requests_by_hour(df):
