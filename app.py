@@ -255,7 +255,7 @@ def plot_engineer_specific_analysis(df):
                         color='white')
         
         # Add extra space to the x-axis
-        ax.set_xlim(right=ax.get_xlim()[1] + 2)
+        ax.set_xlim(right=ax.get_xlim()[1] + 1)
         
         st.pyplot(fig)
 
