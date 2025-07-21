@@ -356,5 +356,28 @@ if uploaded_file is not None:
                                     textcoords='offset points')
                     st.pyplot(fig)
 
+    if selected_graph == "Total Requests per Month":
+        show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown")
+
+        if show_daily_breakdown and not filtered_df.empty:
+            st.header("Daily Breakdown of Total Requests")
+            unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+
+            for month in unique_months:
+                monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                if not monthly_df.empty:
+                    st.subheader(f"Daily Requests for {month.strftime('%B %Y')}")
+                    
+                    daily_counts = monthly_df['Time'].dt.date.value_counts().sort_index()
+                    
+                    fig, ax = plt.subplots(figsize=(15, 6))
+                    ax.plot(daily_counts.index, daily_counts.values, marker='o', linestyle='-')
+                    ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
+                    ax.set_xlabel('Date', fontsize=12)
+                    ax.set_ylabel('Number of Requests', fontsize=12)
+                    ax.tick_params(axis='x', rotation=45)
+                    ax.grid(True)
+                    st.pyplot(fig)
+
 else:
     st.info("Please upload a CSV file to get started.")
