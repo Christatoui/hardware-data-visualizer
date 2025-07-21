@@ -218,6 +218,43 @@ def plot_hardware_specific_analysis(df):
             else:
                 st.info(f"No hardware request data found for {selected_requester}.")
 
+def plot_engineer_specific_analysis(df):
+    """Provides an analysis view for a selected engineer."""
+    engineer_to_analyze = st.selectbox("Select an engineer to analyze:", sorted(df['Requester'].unique()))
+
+    if engineer_to_analyze:
+        engineer_df = df[df['Requester'] == engineer_to_analyze]
+        
+        if engineer_df.empty:
+            st.warning(f"No data available for engineer: {engineer_to_analyze}")
+            return
+
+        hardware_counts = engineer_df['Hardware'].value_counts()
+        total_requests = hardware_counts.sum()
+        hardware_percentages = (hardware_counts / total_requests) * 100
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        bars = sns.barplot(x=hardware_counts.values, y=hardware_counts.index, palette='coolwarm', ax=ax)
+        ax.set_title(f"Hardware Requests for {engineer_to_analyze}", fontsize=16)
+        ax.set_xlabel('Number of Requests', fontsize=12)
+        ax.set_ylabel('Hardware Type', fontsize=12)
+
+        for i, bar in enumerate(bars.patches):
+            # Percentage on top
+            ax.annotate(f'{hardware_percentages.iloc[i]:.1f}%',
+                        (bar.get_width(), bar.get_y() + bar.get_height() / 2),
+                        ha='center', va='center',
+                        size=10, xytext=(20, 0),
+                        textcoords='offset points')
+            # Count at the bottom
+            ax.annotate(f'{int(bar.get_width())}',
+                        (bar.get_width(), bar.get_y() + bar.get_height() / 2),
+                        ha='center', va='center',
+                        size=10, xytext=(-20, 0),
+                        textcoords='offset points',
+                        color='white')
+        st.pyplot(fig)
+
 # --- Streamlit App ---
 
 st.set_page_config(layout="wide")
@@ -242,6 +279,7 @@ if uploaded_file is not None:
     graph_options = {
         "Top 10 Requesters": plot_top_requesters,
         "Analysis by Hardware Type": plot_hardware_specific_analysis,
+        "Analysis by Engineer": plot_engineer_specific_analysis,
         "Total Requests per Month": plot_total_requests_per_month,
         "Requests by Hour (%) Average": plot_requests_by_hour,
         "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
@@ -279,7 +317,7 @@ if uploaded_file is not None:
     graph_function = graph_options[selected_graph]
 
     # Special handling for the new analysis mode, which uses the full dataset
-    if selected_graph == "Analysis by Hardware Type":
+    if selected_graph in ["Analysis by Hardware Type", "Analysis by Engineer"]:
         graph_function(df_cleaned)
     else:
         # All other graphs use the data filtered by the sidebar
