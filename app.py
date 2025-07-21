@@ -123,20 +123,40 @@ def plot_requests_by_hour(df):
     st.pyplot(fig)
 
 def plot_daily_requests_by_weekday(df):
-    """Plots a line chart of daily requests, broken down by day of the week."""
-    df['Date'] = df['Time'].dt.date
+    """Plots a bar chart of the average number of requests for each weekday (Mon-Fri)."""
     df['Weekday'] = df['Time'].dt.day_name()
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-    daily_counts = df[df['Weekday'].isin(weekday_order)].groupby(['Date', 'Weekday']).size().unstack(fill_value=0)
-    daily_counts.index = pd.to_datetime(daily_counts.index)
     
-    fig, ax = plt.subplots(figsize=(15, 8))
-    sns.lineplot(data=daily_counts, dashes=False, ax=ax)
-    ax.set_title('Daily Requests by Day of the Week (Mon-Fri)', fontsize=16)
-    ax.set_xlabel('Date', fontsize=12)
-    ax.set_ylabel('Number of Requests', fontsize=12)
-    ax.legend(title='Day of the Week')
-    ax.grid(True)
+    # Filter for Monday to Friday
+    df_weekdays = df[df['Weekday'].isin(weekday_order)]
+    
+    if df_weekdays.empty:
+        st.warning("No data available for weekdays (Mon-Fri) in the selected range.")
+        return
+        
+    # Calculate the number of unique weeks in the dataset to get a proper average
+    num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
+    if num_weeks < 1:
+        num_weeks = 1 # Avoid division by zero if the range is less than a week
+
+    # Get total counts per weekday and calculate the average
+    weekday_counts = df_weekdays['Weekday'].value_counts()
+    average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = sns.barplot(x=average_counts.index, y=average_counts.values, palette='crest', ax=ax)
+    ax.set_title('Average Daily Requests by Weekday (Mon-Fri)', fontsize=16)
+    ax.set_xlabel('Day of the Week', fontsize=12)
+    ax.set_ylabel('Average Number of Requests', fontsize=12)
+    
+    # Add average number labels on top of each bar
+    for bar in bars.patches:
+        ax.annotate(f'{bar.get_height():.1f}',
+                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                    ha='center', va='center',
+                    size=10, xytext=(0, 8),
+                    textcoords='offset points')
+                    
     st.pyplot(fig)
 
 def plot_hourly_requests_by_month(df):
