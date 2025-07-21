@@ -90,16 +90,23 @@ def plot_requests_by_weekday_monthly(df):
     st.pyplot(fig)
 
 def plot_requests_by_hour(df):
-    """Plots a bar chart showing the percentage of requests by hour of the day."""
+    """Plots a bar chart showing the percentage of requests between 7 AM and 6 PM."""
     df['Hour'] = df['Time'].dt.hour
-    hourly_counts = df['Hour'].value_counts(normalize=True).sort_index() * 100
+    # Filter for hours between 7 AM (7) and 6 PM (18)
+    df_filtered_by_hour = df[(df['Hour'] >= 7) & (df['Hour'] <= 18)]
+    
+    if df_filtered_by_hour.empty:
+        st.warning("No request data available between 7 AM and 6 PM.")
+        return
+
+    hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True).sort_index() * 100
     
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='twilight', ax=ax)
-    ax.set_title('Percentage of Requests by Hour of the Day', fontsize=16)
+    ax.set_title('Requests by Hour (%) Average (7 AM - 6 PM)', fontsize=16)
     ax.set_xlabel('Hour of the Day', fontsize=12)
     ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
-    ax.set_xticks(range(24))
+    ax.set_xticks(range(7, 19)) # Set ticks from 7 to 18
     st.pyplot(fig)
 
 def plot_daily_requests_by_weekday(df):
@@ -210,7 +217,7 @@ if uploaded_file is not None:
         "Top 10 Requesters": plot_top_requesters,
         "Analysis by Hardware Type": plot_hardware_specific_analysis,
         "Requests by Weekday (Monthly)": plot_requests_by_weekday_monthly,
-        "Requests by Hour (%)": plot_requests_by_hour,
+        "Requests by Hour (%) Average": plot_requests_by_hour,
         "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
         "Hourly Requests by Month": plot_hourly_requests_by_month,
     }
