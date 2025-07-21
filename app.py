@@ -188,10 +188,17 @@ def plot_hardware_specific_analysis(df):
             return
 
         fig, ax = plt.subplots(figsize=(12, 8))
-        sns.barplot(x=top_10_requesters.values, y=top_10_requesters.index, palette='viridis', ax=ax)
+        bars = sns.barplot(x=top_10_requesters.values, y=top_10_requesters.index, palette='viridis', ax=ax)
         ax.set_title(f"Top 10 Requesters for '{hardware_to_analyze}'", fontsize=16)
         ax.set_xlabel('Number of Requests', fontsize=12)
         ax.set_ylabel('Requester', fontsize=12)
+
+        # Add total number labels to the end of each bar
+        for bar in bars.patches:
+            ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
+                    f'{int(bar.get_width())}',
+                    va='center', ha='left', size=10)
+
         st.pyplot(fig)
 
         # --- Drill-down for a specific requester ---
