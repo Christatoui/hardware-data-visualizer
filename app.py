@@ -262,6 +262,9 @@ if uploaded_file is not None:
         (df_cleaned['Time'].dt.date <= end_date)
     ]
 
+    # --- Monthly Breakdown Feature ---
+    show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Hardware Counts Breakdown")
+
     st.header(selected_graph)
     graph_function = graph_options[selected_graph]
 
@@ -274,6 +277,23 @@ if uploaded_file is not None:
             graph_function(filtered_df)
         else:
             st.warning("No data available for the selected filters.")
+
+    # If the checkbox is ticked, show the monthly breakdown
+    if show_monthly_breakdown and not filtered_df.empty:
+        st.header("Monthly Hardware Request Counts")
+        # Get unique months in the filtered data, sorted
+        unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+
+        for month in unique_months:
+            monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+            if not monthly_df.empty:
+                st.subheader(f"Hardware Counts for {month.strftime('%B %Y')}")
+                fig, ax = plt.subplots(figsize=(12, 8))
+                sns.countplot(y='Hardware', data=monthly_df, order=monthly_df['Hardware'].value_counts().index, palette='viridis', ax=ax)
+                ax.set_title(f'Hardware Request Counts for {month.strftime("%B %Y")}', fontsize=16)
+                ax.set_xlabel('Number of Requests', fontsize=12)
+                ax.set_ylabel('Hardware Type', fontsize=12)
+                st.pyplot(fig)
 
 else:
     st.info("Please upload a CSV file to get started.")
