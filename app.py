@@ -336,5 +336,46 @@ if uploaded_file is not None:
                     ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
                     st.pyplot(fig)
 
+    if selected_graph == "Daily Requests by Weekday (Mon-Fri)":
+        show_weekday_breakdown = st.sidebar.checkbox("Show Monthly Weekday Average")
+
+        if show_weekday_breakdown and not filtered_df.empty:
+            st.header("Monthly Breakdown: Average Daily Requests by Weekday")
+            unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+
+            for month in unique_months:
+                monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                if not monthly_df.empty:
+                    st.subheader(f"Analysis for {month.strftime('%B %Y')}")
+                    
+                    monthly_df['Weekday'] = monthly_df['Time'].dt.day_name()
+                    weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                    df_weekdays = monthly_df[monthly_df['Weekday'].isin(weekday_order)]
+
+                    if df_weekdays.empty:
+                        st.warning(f"No weekday data for {month.strftime('%B %Y')}.")
+                        continue
+                    
+                    num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
+                    if num_weeks < 1:
+                        num_weeks = 1
+
+                    weekday_counts = df_weekdays['Weekday'].value_counts()
+                    average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
+
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    bars = sns.barplot(x=average_counts.index, y=average_counts.values, palette='crest', ax=ax)
+                    ax.set_title(f'Average Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
+                    ax.set_xlabel('Day of the Week', fontsize=12)
+                    ax.set_ylabel('Average Number of Requests', fontsize=12)
+                    
+                    for bar in bars.patches:
+                        ax.annotate(f'{bar.get_height():.1f}',
+                                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                    ha='center', va='center',
+                                    size=10, xytext=(0, 8),
+                                    textcoords='offset points')
+                    st.pyplot(fig)
+
 else:
     st.info("Please upload a CSV file to get started.")
