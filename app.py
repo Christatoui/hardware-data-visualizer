@@ -166,8 +166,6 @@ def plot_total_requests_per_month(df):
 
 def plot_hardware_specific_analysis(df):
     """Provides an analysis view for a selected hardware type."""
-    st.header("Analysis by Hardware Type")
-
     # Dropdown to select a single hardware type
     hardware_to_analyze = st.selectbox("Select a hardware type to analyze:", df['Hardware'].unique())
 
