@@ -371,16 +371,17 @@ if uploaded_file is not None:
                     daily_counts = monthly_df['Time'].dt.date.value_counts().sort_index()
                     
                     fig, ax = plt.subplots(figsize=(15, 6))
-                    sns.barplot(x=daily_counts.index.strftime('%Y-%m-%d'), y=daily_counts.values, color='skyblue', ax=ax)
+                    # Plot using the actual date objects for the x-axis
+                    sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
                     ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
                     ax.set_xlabel('Date', fontsize=12)
                     ax.set_ylabel('Number of Requests', fontsize=12)
                     
-                    # Create labels for the x-axis, showing only Mondays
-                    x_labels = [d.strftime('%Y-%m-%d') if d.weekday() == 0 else '' for d in daily_counts.index]
-                    ax.set_xticklabels(x_labels)
-                    
-                    ax.tick_params(axis='x', rotation=45)
+                    # Format the x-axis labels to show only Mondays
+                    date_labels = [item.get_text() for item in ax.get_xticklabels()]
+                    new_labels = [label if pd.to_datetime(label).weekday() == 0 else '' for label in date_labels]
+                    ax.set_xticklabels(new_labels, rotation=45, ha="right")
+
                     ax.grid(axis='y')
                     st.pyplot(fig)
 
