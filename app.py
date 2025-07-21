@@ -368,10 +368,18 @@ if uploaded_file is not None:
                 if not monthly_df.empty:
                     st.subheader(f"Daily Requests for {month.strftime('%B %Y')}")
                     
-                    daily_counts = monthly_df['Time'].dt.date.value_counts().sort_index()
+                    daily_counts = monthly_df['Time'].dt.date.value_counts()
                     
+                    # Create a full date range for the month
+                    start_of_month = month.to_timestamp()
+                    end_of_month = start_of_month + pd.offsets.MonthEnd(1)
+                    all_days_in_month = pd.date_range(start=start_of_month, end=end_of_month, freq='D').date
+                    
+                    # Reindex the daily counts to include all days, filling missing with 0
+                    daily_counts.index = pd.to_datetime(daily_counts.index)
+                    daily_counts = daily_counts.reindex(pd.to_datetime(all_days_in_month), fill_value=0)
+
                     fig, ax = plt.subplots(figsize=(15, 6))
-                    # Plot using the actual date objects for the x-axis
                     sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
                     ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
                     ax.set_xlabel('Date', fontsize=12)
