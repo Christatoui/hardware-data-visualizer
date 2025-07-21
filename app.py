@@ -41,7 +41,8 @@ def plot_hardware_counts(df):
     st.pyplot(fig)
 
 def plot_top_requesters(df):
-    """Plots a bar chart of the top 10 requesters."""
+    """Plots a bar chart of the top 10 requesters and allows drill-down."""
+    st.subheader("Top 10 Hardware Requesters")
     fig, ax = plt.subplots(figsize=(12, 8))
     top_10_requesters = df['Requester'].value_counts().nlargest(10)
     sns.barplot(x=top_10_requesters.values, y=top_10_requesters.index, palette='plasma', ax=ax)
@@ -49,6 +50,23 @@ def plot_top_requesters(df):
     ax.set_xlabel('Number of Requests', fontsize=12)
     ax.set_ylabel('Requester', fontsize=12)
     st.pyplot(fig)
+
+    st.subheader("Drill-down: Top 5 Items for a Requester")
+    selected_requester = st.selectbox("Select a requester to see their top 5 items:", top_10_requesters.index)
+
+    if selected_requester:
+        requester_df = df[df['Requester'] == selected_requester]
+        top_5_items = requester_df['Hardware'].value_counts().nlargest(5)
+
+        if not top_5_items.empty:
+            fig2, ax2 = plt.subplots(figsize=(10, 6))
+            sns.barplot(x=top_5_items.values, y=top_5_items.index, palette='magma', ax=ax2)
+            ax2.set_title(f"Top 5 Hardware Requests for {selected_requester}", fontsize=14)
+            ax2.set_xlabel("Number of Requests", fontsize=10)
+            ax2.set_ylabel("Hardware Type", fontsize=10)
+            st.pyplot(fig2)
+        else:
+            st.info(f"No hardware request data found for {selected_requester}.")
 
 def plot_requests_by_weekday_monthly(df):
     """Plots a grouped bar chart of requests by day of the week for each month."""
