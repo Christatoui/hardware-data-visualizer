@@ -34,10 +34,17 @@ def clean_data(df):
 def plot_hardware_counts(df):
     """Plots a bar chart of hardware request counts."""
     fig, ax = plt.subplots(figsize=(12, 8))
-    sns.countplot(y='Hardware', data=df, order=df['Hardware'].value_counts().index, palette='viridis', ax=ax)
+    bars = sns.countplot(y='Hardware', data=df, order=df['Hardware'].value_counts().index, palette='viridis', ax=ax)
     ax.set_title('Hardware Request Counts', fontsize=16)
     ax.set_xlabel('Number of Requests', fontsize=12)
     ax.set_ylabel('Hardware Type', fontsize=12)
+
+    # Add total number labels to the end of each bar
+    for bar in bars.patches:
+        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
+                f'{int(bar.get_width())}',
+                va='center', ha='left', size=10)
+
     st.pyplot(fig)
 
 def plot_top_requesters(df):
@@ -323,9 +330,18 @@ if uploaded_file is not None:
 
     # --- Breakdown Options ---
     st.sidebar.header("Breakdown Options")
-    show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Breakdown", key="monthly_breakdown")
-    show_weekday_breakdown = st.sidebar.checkbox("Show Monthly Weekday Average", key="weekday_breakdown")
-    show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown", key="daily_breakdown")
+    
+    # Initialize breakdown options to False
+    show_monthly_breakdown = False
+    show_weekday_breakdown = False
+    show_daily_breakdown = False
+
+    if selected_graph == "Requests by Hour (%) Average":
+        show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Breakdown", key="monthly_breakdown_cb")
+    if selected_graph == "Daily Requests by Weekday (Mon-Fri)":
+        show_weekday_breakdown = st.sidebar.checkbox("Show Monthly Weekday Average", key="weekday_breakdown_cb")
+    if selected_graph == "Total Requests per Month":
+        show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown", key="daily_breakdown_cb")
 
     # --- Filtering Options ---
     st.sidebar.header("Filter Data")
@@ -366,7 +382,6 @@ if uploaded_file is not None:
             st.warning("No data available for the selected filters.")
 
     # --- Conditional Monthly Breakdown ---
-    # Only show the breakdown option if the correct graph is selected
     if selected_graph == "Requests by Hour (%) Average" and show_monthly_breakdown:
         if not filtered_df.empty:
             st.header("Monthly Breakdown: Requests by Hour (%) Average")
