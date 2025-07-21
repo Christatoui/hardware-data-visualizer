@@ -130,6 +130,55 @@ def plot_hourly_requests_by_month(df):
     ax.grid(True)
     st.pyplot(fig)
 
+def plot_hardware_specific_analysis(df):
+    """Provides an analysis view for a selected hardware type."""
+    st.header("Analysis by Hardware Type")
+
+    # Dropdown to select a single hardware type
+    hardware_to_analyze = st.selectbox("Select a hardware type to analyze:", df['Hardware'].unique())
+
+    if hardware_to_analyze:
+        # Filter the dataframe for the selected hardware
+        specific_hardware_df = df[df['Hardware'] == hardware_to_analyze]
+
+        if specific_hardware_df.empty:
+            st.warning(f"No data available for hardware: {hardware_to_analyze}")
+            return
+
+        # --- Top 10 Requesters for this Hardware ---
+        st.subheader(f"Top 10 Requesters for '{hardware_to_analyze}'")
+        top_10_requesters = specific_hardware_df['Requester'].value_counts().nlargest(10)
+
+        if top_10_requesters.empty:
+            st.info(f"No requesters found for '{hardware_to_analyze}'.")
+            return
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        sns.barplot(x=top_10_requesters.values, y=top_10_requesters.index, palette='viridis', ax=ax)
+        ax.set_title(f"Top 10 Requesters for '{hardware_to_analyze}'", fontsize=16)
+        ax.set_xlabel('Number of Requests', fontsize=12)
+        ax.set_ylabel('Requester', fontsize=12)
+        st.pyplot(fig)
+
+        # --- Drill-down for a specific requester ---
+        st.subheader("Drill-down: Top 5 Items for a Requester")
+        selected_requester = st.selectbox("Select a requester to see their top 5 items:", top_10_requesters.index)
+
+        if selected_requester:
+            # Filter the original dataframe for the selected requester
+            requester_df = df[df['Requester'] == selected_requester]
+            top_5_items = requester_df['Hardware'].value_counts().nlargest(5)
+
+            if not top_5_items.empty:
+                fig2, ax2 = plt.subplots(figsize=(10, 6))
+                sns.barplot(x=top_5_items.values, y=top_5_items.index, palette='magma', ax=ax2)
+                ax2.set_title(f"Top 5 Hardware Requests for {selected_requester}", fontsize=14)
+                ax2.set_xlabel("Number of Requests", fontsize=10)
+                ax2.set_ylabel("Hardware Type", fontsize=10)
+                st.pyplot(fig2)
+            else:
+                st.info(f"No hardware request data found for {selected_requester}.")
+
 # --- Streamlit App ---
 
 st.set_page_config(layout="wide")
@@ -154,6 +203,7 @@ if uploaded_file is not None:
     graph_options = {
         "Hardware Request Counts": plot_hardware_counts,
         "Top 10 Requesters": plot_top_requesters,
+        "Analysis by Hardware Type": plot_hardware_specific_analysis,
         "Requests by Weekday (Monthly)": plot_requests_by_weekday_monthly,
         "Requests by Hour (%)": plot_requests_by_hour,
         "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
@@ -188,11 +238,17 @@ if uploaded_file is not None:
     ]
 
     st.header(selected_graph)
-    if not filtered_df.empty:
-        graph_function = graph_options[selected_graph]
-        graph_function(filtered_df)
+    graph_function = graph_options[selected_graph]
+
+    # Special handling for the new analysis mode, which uses the full dataset
+    if selected_graph == "Analysis by Hardware Type":
+        graph_function(df_cleaned)
     else:
-        st.warning("No data available for the selected filters.")
+        # All other graphs use the data filtered by the sidebar
+        if not filtered_df.empty:
+            graph_function(filtered_df)
+        else:
+            st.warning("No data available for the selected filters.")
 
 else:
     st.info("Please upload a CSV file to get started.")
