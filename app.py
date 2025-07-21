@@ -262,9 +262,6 @@ if uploaded_file is not None:
         (df_cleaned['Time'].dt.date <= end_date)
     ]
 
-    # --- Monthly Breakdown Feature ---
-    show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Hardware Counts Breakdown")
-
     st.header(selected_graph)
     graph_function = graph_options[selected_graph]
 
@@ -278,44 +275,46 @@ if uploaded_file is not None:
         else:
             st.warning("No data available for the selected filters.")
 
-    # If the checkbox is ticked, show the monthly breakdown
-    if show_monthly_breakdown and not filtered_df.empty:
-        st.header("Monthly Breakdown: Requests by Hour (%) Average")
-        # Get unique months in the filtered data, sorted
-        unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+    # --- Conditional Monthly Breakdown ---
+    # Only show the breakdown option if the correct graph is selected
+    if selected_graph == "Requests by Hour (%) Average":
+        show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Breakdown")
+        
+        if show_monthly_breakdown and not filtered_df.empty:
+            st.header("Monthly Breakdown: Requests by Hour (%) Average")
+            unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
 
-        for month in unique_months:
-            monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
-            if not monthly_df.empty:
-                st.subheader(f"Analysis for {month.strftime('%B %Y')}")
-                
-                # Re-use the logic from plot_requests_by_hour for each month
-                monthly_df['Hour'] = monthly_df['Time'].dt.hour
-                df_filtered_by_hour = monthly_df[(monthly_df['Hour'] >= 7) & (monthly_df['Hour'] <= 18)]
+            for month in unique_months:
+                monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                if not monthly_df.empty:
+                    st.subheader(f"Analysis for {month.strftime('%B %Y')}")
+                    
+                    monthly_df['Hour'] = monthly_df['Time'].dt.hour
+                    df_filtered_by_hour = monthly_df[(monthly_df['Hour'] >= 7) & (monthly_df['Hour'] <= 18)]
 
-                if df_filtered_by_hour.empty:
-                    st.warning(f"No request data available between 7 AM and 6 PM for {month.strftime('%B %Y')}.")
-                    continue
+                    if df_filtered_by_hour.empty:
+                        st.warning(f"No request data available between 7 AM and 6 PM for {month.strftime('%B %Y')}.")
+                        continue
 
-                hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
-                all_hours = pd.Index(range(7, 19), name="Hour")
-                hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
-                
-                fig, ax = plt.subplots(figsize=(12, 6))
-                bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='viridis', ax=ax)
-                ax.set_title(f'Requests by Hour (%) for {month.strftime("%B %Y")}', fontsize=16)
-                ax.set_xlabel('Hour of the Day', fontsize=12)
-                ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
-                
-                for bar in bars.patches:
-                    ax.annotate(f'{bar.get_height():.1f}%',
-                                (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                                ha='center', va='center',
-                                size=10, xytext=(0, 8),
-                                textcoords='offset points')
+                    hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
+                    all_hours = pd.Index(range(7, 19), name="Hour")
+                    hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
+                    
+                    fig, ax = plt.subplots(figsize=(12, 6))
+                    bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='viridis', ax=ax)
+                    ax.set_title(f'Requests by Hour (%) for {month.strftime("%B %Y")}', fontsize=16)
+                    ax.set_xlabel('Hour of the Day', fontsize=12)
+                    ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
+                    
+                    for bar in bars.patches:
+                        ax.annotate(f'{bar.get_height():.1f}%',
+                                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                    ha='center', va='center',
+                                    size=10, xytext=(0, 8),
+                                    textcoords='offset points')
 
-                ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
-                st.pyplot(fig)
+                    ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
+                    st.pyplot(fig)
 
 else:
     st.info("Please upload a CSV file to get started.")
