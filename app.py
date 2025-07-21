@@ -45,10 +45,17 @@ def plot_top_requesters(df):
     st.subheader("Top 10 Hardware Requesters")
     fig, ax = plt.subplots(figsize=(12, 8))
     top_10_requesters = df['Requester'].value_counts().nlargest(10)
-    sns.barplot(x=top_10_requesters.values, y=top_10_requesters.index, palette='plasma', ax=ax)
+    bars1 = sns.barplot(x=top_10_requesters.values, y=top_10_requesters.index, palette='plasma', ax=ax)
     ax.set_title('Top 10 Hardware Requesters', fontsize=16)
     ax.set_xlabel('Number of Requests', fontsize=12)
     ax.set_ylabel('Requester', fontsize=12)
+
+    # Add total number labels to the end of each bar
+    for bar in bars1.patches:
+        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
+                f'{int(bar.get_width())}',
+                va='center', ha='left', size=10)
+
     st.pyplot(fig)
 
     st.subheader("Drill-down: Top 5 Items for a Requester")
@@ -60,10 +67,17 @@ def plot_top_requesters(df):
 
         if not top_5_items.empty:
             fig2, ax2 = plt.subplots(figsize=(10, 6))
-            sns.barplot(x=top_5_items.values, y=top_5_items.index, palette='magma', ax=ax2)
+            bars2 = sns.barplot(x=top_5_items.values, y=top_5_items.index, palette='magma', ax=ax2)
             ax2.set_title(f"Top 5 Hardware Requests for {selected_requester}", fontsize=14)
             ax2.set_xlabel("Number of Requests", fontsize=10)
             ax2.set_ylabel("Hardware Type", fontsize=10)
+
+            # Add total number labels to the end of each bar
+            for bar in bars2.patches:
+                ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
+                        f'{int(bar.get_width())}',
+                        va='center', ha='left', size=10)
+
             st.pyplot(fig2)
         else:
             st.info(f"No hardware request data found for {selected_requester}.")
@@ -307,6 +321,12 @@ if uploaded_file is not None:
 
     selected_graph = st.sidebar.selectbox("Choose a graph to display", list(graph_options.keys()))
 
+    # --- Breakdown Options ---
+    st.sidebar.header("Breakdown Options")
+    show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Breakdown", key="monthly_breakdown")
+    show_weekday_breakdown = st.sidebar.checkbox("Show Monthly Weekday Average", key="weekday_breakdown")
+    show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown", key="daily_breakdown")
+
     # --- Filtering Options ---
     st.sidebar.header("Filter Data")
     
@@ -347,10 +367,8 @@ if uploaded_file is not None:
 
     # --- Conditional Monthly Breakdown ---
     # Only show the breakdown option if the correct graph is selected
-    if selected_graph == "Requests by Hour (%) Average":
-        show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Breakdown")
-        
-        if show_monthly_breakdown and not filtered_df.empty:
+    if selected_graph == "Requests by Hour (%) Average" and show_monthly_breakdown:
+        if not filtered_df.empty:
             st.header("Monthly Breakdown: Requests by Hour (%) Average")
             unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
 
@@ -386,10 +404,8 @@ if uploaded_file is not None:
                     ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
                     st.pyplot(fig)
 
-    if selected_graph == "Daily Requests by Weekday (Mon-Fri)":
-        show_weekday_breakdown = st.sidebar.checkbox("Show Monthly Weekday Average")
-
-        if show_weekday_breakdown and not filtered_df.empty:
+    if selected_graph == "Daily Requests by Weekday (Mon-Fri)" and show_weekday_breakdown:
+        if not filtered_df.empty:
             st.header("Monthly Breakdown: Average Daily Requests by Weekday")
             unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
 
@@ -427,10 +443,8 @@ if uploaded_file is not None:
                                     textcoords='offset points')
                     st.pyplot(fig)
 
-    if selected_graph == "Total Requests per Month":
-        show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown")
-
-        if show_daily_breakdown and not filtered_df.empty:
+    if selected_graph == "Total Requests per Month" and show_daily_breakdown:
+        if not filtered_df.empty:
             st.header("Daily Breakdown of Total Requests")
             unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
 
