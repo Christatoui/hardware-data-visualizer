@@ -253,6 +253,10 @@ def plot_engineer_specific_analysis(df):
                         size=10, xytext=(-20, 0),
                         textcoords='offset points',
                         color='white')
+        
+        # Add extra space to the x-axis
+        ax.set_xlim(right=ax.get_xlim()[1] + 2)
+        
         st.pyplot(fig)
 
 # --- Streamlit App ---
