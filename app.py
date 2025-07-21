@@ -223,6 +223,32 @@ def plot_hardware_analysis(df):
 
         st.pyplot(fig)
 
+        # --- Drill-down for a specific requester ---
+        st.subheader("Drill-down: Top 5 Items for a Requester")
+        selected_requester = st.selectbox("Select a requester to see their top 5 items:", top_10_requesters.index, key="hardware_analysis_drilldown")
+
+        if selected_requester:
+            # Filter the original dataframe for the selected requester
+            requester_df = df[df['Requester'] == selected_requester]
+            top_5_items = requester_df['Hardware'].value_counts().nlargest(5)
+
+            if not top_5_items.empty:
+                fig2, ax2 = plt.subplots(figsize=(10, 6))
+                bars2 = sns.barplot(x=top_5_items.values, y=top_5_items.index, palette='magma', ax=ax2)
+                ax2.set_title(f"Top 5 Hardware Requests for {selected_requester}", fontsize=14)
+                ax2.set_xlabel("Number of Requests", fontsize=10)
+                ax2.set_ylabel("Hardware Type", fontsize=10)
+
+                # Add total number labels to the end of each bar
+                for bar in bars2.patches:
+                    ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
+                            f'{int(bar.get_width())}',
+                            va='center', ha='left', size=10)
+
+                st.pyplot(fig2)
+            else:
+                st.info(f"No hardware request data found for {selected_requester}.")
+
 def plot_engineer_specific_analysis(df):
     """Provides an analysis view for a selected engineer."""
     all_engineers = sorted(df['Requester'].unique())
