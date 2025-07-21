@@ -318,12 +318,12 @@ if uploaded_file is not None:
     
     graph_options = {
         "Top 10 Requesters": plot_top_requesters,
-        "Analysis by Hardware Type": plot_hardware_specific_analysis,
         "Analysis by Engineer": plot_engineer_specific_analysis,
         "Total Requests per Month": plot_total_requests_per_month,
         "Requests by Hour (%) Average": plot_requests_by_hour,
         "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
         "Hardware Request Counts": plot_hardware_counts,
+        "Analysis by Hardware Type": plot_hardware_specific_analysis,
     }
 
     selected_graph = st.sidebar.selectbox("Choose a graph to display", list(graph_options.keys()))
