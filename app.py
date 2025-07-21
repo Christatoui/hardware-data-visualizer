@@ -220,7 +220,22 @@ def plot_hardware_specific_analysis(df):
 
 def plot_engineer_specific_analysis(df):
     """Provides an analysis view for a selected engineer."""
-    engineer_to_analyze = st.selectbox("Select an engineer to analyze:", sorted(df['Requester'].unique()))
+    all_engineers = sorted(df['Requester'].unique())
+    
+    # Add a text input for searching
+    search_term = st.text_input("Search for an engineer:")
+    
+    # Filter engineers based on the search term
+    if search_term:
+        filtered_engineers = [eng for eng in all_engineers if search_term.lower() in eng.lower()]
+    else:
+        filtered_engineers = all_engineers
+
+    if not filtered_engineers:
+        st.warning("No engineers found matching your search.")
+        return
+
+    engineer_to_analyze = st.selectbox("Select an engineer to analyze:", filtered_engineers)
 
     if engineer_to_analyze:
         engineer_df = df[df['Requester'] == engineer_to_analyze]
