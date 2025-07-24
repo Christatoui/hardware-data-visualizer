@@ -355,10 +355,14 @@ if uploaded_file is not None:
     # --- Filtering Options ---
     st.sidebar.header("Filter Data")
     
-    # Filter by Hardware
+    # Filter by Hardware using individual checkboxes
+    st.sidebar.subheader("Filter by Hardware")
     all_hardware = df_cleaned['Hardware'].unique()
-    selected_hardware = st.sidebar.multiselect("Filter by Hardware", all_hardware, default=all_hardware)
-    
+    selected_hardware = []
+    for hardware_type in all_hardware:
+        if st.sidebar.checkbox(hardware_type, value=True, key=f"hardware_{hardware_type}"):
+            selected_hardware.append(hardware_type)
+
     # Filter by Requester
     all_requesters = df_cleaned['Requester'].unique()
     selected_requesters = st.sidebar.multiselect("Filter by Requester", all_requesters, default=all_requesters)
