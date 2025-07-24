@@ -363,9 +363,13 @@ if uploaded_file is not None:
             if st.checkbox(hardware_type, value=True, key=f"hardware_{hardware_type}"):
                 selected_hardware.append(hardware_type)
 
-    # Filter by Requester
-    all_requesters = df_cleaned['Requester'].unique()
-    selected_requesters = st.sidebar.multiselect("Filter by Requester", all_requesters, default=all_requesters)
+    # Filter by Requester using an expander with checkboxes
+    with st.sidebar.expander("Filter by Requester", expanded=True):
+        all_requesters = sorted(df_cleaned['Requester'].unique())
+        selected_requesters = []
+        for requester in all_requesters:
+            if st.checkbox(requester, value=True, key=f"requester_{requester}"):
+                selected_requesters.append(requester)
 
     # Filter by Date Range
     min_date = df_cleaned['Time'].min().date()
