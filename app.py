@@ -363,8 +363,12 @@ if uploaded_file is not None:
             if st.checkbox(hardware_type, value=True, key=f"hardware_{hardware_type}"):
                 selected_hardware.append(hardware_type)
 
-    # Filter by Requester with search and scrollable checkbox list
+    # Filter by Requester with search, select/deselect all, and scrollable list
     st.sidebar.subheader("Filter by Requester")
+    
+    # Select/Deselect All checkbox
+    select_all_requesters = st.sidebar.checkbox("Select/Deselect All Requesters", value=True)
+    
     requester_search = st.sidebar.text_input("Search Requesters")
     
     all_requesters = sorted(df_cleaned['Requester'].unique())
@@ -378,7 +382,7 @@ if uploaded_file is not None:
     selected_requesters = []
     with requester_container:
         for requester in filtered_requesters:
-            if st.checkbox(requester, value=True, key=f"requester_{requester}"):
+            if st.checkbox(requester, value=select_all_requesters, key=f"requester_{requester}"):
                 selected_requesters.append(requester)
 
     # Filter by Date Range
