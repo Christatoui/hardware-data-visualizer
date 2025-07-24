@@ -363,11 +363,21 @@ if uploaded_file is not None:
             if st.checkbox(hardware_type, value=True, key=f"hardware_{hardware_type}"):
                 selected_hardware.append(hardware_type)
 
-    # Filter by Requester using an expander with checkboxes
-    with st.sidebar.expander("Filter by Requester", expanded=True):
-        all_requesters = sorted(df_cleaned['Requester'].unique())
-        selected_requesters = []
-        for requester in all_requesters:
+    # Filter by Requester with search and scrollable checkbox list
+    st.sidebar.subheader("Filter by Requester")
+    requester_search = st.sidebar.text_input("Search Requesters")
+    
+    all_requesters = sorted(df_cleaned['Requester'].unique())
+    if requester_search:
+        filtered_requesters = [r for r in all_requesters if requester_search.lower() in r.lower()]
+    else:
+        filtered_requesters = all_requesters
+
+    # Create a scrollable container for the checkboxes
+    requester_container = st.sidebar.container(height=200)
+    selected_requesters = []
+    with requester_container:
+        for requester in filtered_requesters:
             if st.checkbox(requester, value=True, key=f"requester_{requester}"):
                 selected_requesters.append(requester)
 
