@@ -44,7 +44,6 @@ def load_language_assignments():
 
 def save_language_assignments(df):
     """Saves language assignments to the CSV file."""
-    # Ensure the directory exists before saving the file
     os.makedirs(os.path.dirname(ASSIGNMENT_FILE), exist_ok=True)
     df.to_csv(ASSIGNMENT_FILE, index=False)
 
@@ -201,10 +200,24 @@ def plot_top_languages(df, language_df):
         st.warning("No language codes have been assigned in the 'Data Sheet' tab. Please assign them to see this graph.")
         return
     
-    language_counts = language_df['Language Code'].value_counts().nlargest(10)
-    language_counts.index = language_counts.index.map(LANGUAGE_CODES)
+    valid_assigned_languages = language_df[language_df['Language Code'].isin(LANGUAGE_CODES.keys())].copy()
+    if valid_assigned_languages.empty:
+        st.warning("No valid language codes found in assignments. Please check the 'Data Sheet' tab.")
+        return
+
+    language_counts = valid_assigned_languages['Language Code'].value_counts().nlargest(10)
+    language_names_map = language_counts.index.map(LANGUAGE_CODES).dropna()
+    
+    if language_names_map.empty:
+        st.warning("Could not map any assigned language codes to known languages.")
+        return
+
+    # Filter original counts to only include successfully mapped languages
+    valid_codes = [code for code, name in LANGUAGE_CODES.items() if name in language_names_map.values]
+    language_counts = language_counts[language_counts.index.isin(valid_codes)]
+
     fig, ax = plt.subplots(figsize=(12, 8))
-    bars = sns.barplot(x=language_counts.values, y=language_counts.index, palette='rocket', ax=ax)
+    bars = sns.barplot(x=language_counts.values, y=language_names_map, palette='rocket', ax=ax)
     ax.set_title('Top 10 Languages by Number of Requesters', fontsize=16)
     ax.set_xlabel('Number of Requesters', fontsize=12)
     ax.set_ylabel('Language', fontsize=12)
@@ -214,10 +227,10 @@ def plot_top_languages(df, language_df):
 
     st.header("Drill-down: Top 5 Devices by Language")
     code_to_name = {v: k for k, v in LANGUAGE_CODES.items()}
-    selected_language_name = st.selectbox("Select a language to see its top 5 devices:", language_counts.index)
+    selected_language_name = st.selectbox("Select a language to see its top 5 devices:", language_names_map)
     if selected_language_name:
         selected_language_code = code_to_name[selected_language_name]
-        requesters_in_language = language_df[language_df['Language Code'] == selected_language_code]['Requester'].tolist()
+        requesters_in_language = valid_assigned_languages[valid_assigned_languages['Language Code'] == selected_language_code]['Requester'].tolist()
         language_specific_df = df[df['Requester'].isin(requesters_in_language)]
         if language_specific_df.empty:
             st.info(f"No request data found for the language: {selected_language_name}")
@@ -250,7 +263,6 @@ LANGUAGE_CODES = {
     "TU": "Turkish", "UA": "Ukrainian", "X": "English - Australian"
 }
 
-# Load data and initialize session state
 if 'df_cleaned' not in st.session_state:
     st.session_state.df_cleaned = None
 if 'language_data' not in st.session_state:
@@ -359,20 +371,18 @@ with tab2:
             key="data_editor"
         )
         
-        # Automatic saving on edit
         if 'last_saved_df' not in st.session_state:
-            st.session_state.last_saved_df = merged_df
+            st.session_state.last_saved_df = merged_df.copy()
         
         if not edited_df.equals(st.session_state.last_saved_df):
             save_language_assignments(edited_df)
-            st.session_state.language_data = edited_df
-            st.session_state.last_saved_df = edited_df
+            st.session_state.language_data = edited_df.copy()
+            st.session_state.last_saved_df = edited_df.copy()
 
-        # Manual save button for user confirmation
         if st.button("Save Assignments"):
             save_language_assignments(edited_df)
-            st.session_state.language_data = edited_df
-            st.session_state.last_saved_df = edited_df
+            st.session_state.language_data = edited_df.copy()
+            st.session_state.last_saved_df = edited_df.copy()
             st.success("Language assignments explicitly saved to language_assignments.csv!")
     else:
         st.info("Please upload a CSV file using the sidebar to get started.")
