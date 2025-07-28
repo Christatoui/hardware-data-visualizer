@@ -339,8 +339,13 @@ with tab2:
                 max_date = df_cleaned['Time'].max().date()
                 start_date, end_date = st.date_input('Filter by Date Range', [min_date, max_date])
 
-                all_hardware = sorted(df_cleaned['Hardware'].unique())
-                selected_hardware = st.multiselect("Filter by Hardware", all_hardware, default=all_hardware)
+                with st.expander("Filter by Hardware"):
+                    all_hardware = sorted(df_cleaned['Hardware'].unique())
+                    select_all_hardware = st.checkbox("Select/Deselect All", value=True, key="select_all_hardware")
+                    selected_hardware = []
+                    for hardware_type in all_hardware:
+                        if st.checkbox(hardware_type, value=select_all_hardware, key=f"hardware_{hardware_type}"):
+                            selected_hardware.append(hardware_type)
                 
                 all_requesters = sorted(df_cleaned['Requester'].unique())
                 selected_requesters = st.multiselect("Filter by Requester", all_requesters, default=all_requesters)
