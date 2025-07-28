@@ -315,6 +315,17 @@ st.set_page_config(layout="wide")
 # You can set the NGROK_AUTHTOKEN environment variable
 st.title("Hardware Request Data Visualizer")
 
+# --- Language Codes ---
+LANGUAGE_CODES = {
+    "AB": "Arabic", "B": "English - UK", "BG": "Bulgarian", "BR": "Portuguese - Brazil",
+    "C": "French Canadian", "CA": "Catalan", "CR": "Croatian", "CZ": "Czech",
+    "D": "German", "DK": "Danish", "E": "Spanish", "FU": "French", "GR": "Greek",
+    "H": "Norwegian", "HB": "Hebrew", "HI": "Hindi", "K": "Finnish", "KZ": "Kazakh",
+    "LA": "Spanish LATAM", "LT": "Lithuanian", "MG": "Hungarian", "N": "Dutch",
+    "PL": "Polish", "PO": "Portuguese", "RO": "Romanian", "RS": "Russian",
+    "S": "Swedish", "SV": "Slovenian", "SK": "Slovakian", "T": "Italian",
+    "TU": "Turkish", "UA": "Ukrainian", "X": "English - Australian"
+}
 
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type="csv")
 
@@ -324,7 +335,11 @@ if uploaded_file is not None:
     
     df_cleaned = clean_data(data.copy())
 
-    st.sidebar.header("Graph Options")
+    # --- Create Tabs ---
+    tab1, tab2 = st.tabs(["Graphs and Filters", "Data Sheet"])
+
+    with tab1:
+        st.sidebar.header("Graph Options")
     
     graph_options = {
         "Top 10 Requesters": plot_top_requesters,
@@ -550,6 +565,32 @@ if uploaded_file is not None:
 
                     ax.grid(axis='y')
                     st.pyplot(fig)
+
+    with tab2:
+        st.header("Requester Language Codes")
+        
+        # Get unique requesters
+        unique_requesters = sorted(df_cleaned['Requester'].unique())
+        
+        # Create a dataframe for the data sheet
+        data_sheet_df = pd.DataFrame(unique_requesters, columns=["Requester"])
+        
+        # Add a column for language code selection
+        data_sheet_df['Language Code'] = ""
+        
+        # Display the editable dataframe
+        edited_df = st.data_editor(
+            data_sheet_df,
+            column_config={
+                "Language Code": st.column_config.SelectboxColumn(
+                    "Language Code",
+                    help="Select the language code for the requester",
+                    options=list(LANGUAGE_CODES.keys()),
+                    required=False,
+                )
+            },
+            hide_index=True,
+        )
 
 else:
     st.info("Please upload a CSV file to get started.")
