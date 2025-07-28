@@ -301,93 +301,85 @@ LANGUAGE_CODES = {
 if 'df_cleaned' not in st.session_state:
     st.session_state.df_cleaned = None
 
-tab1, tab2, tab3 = st.tabs(["Data Upload", "Graphs and Filters", "Data Sheet"])
+# --- Sidebar ---
+st.sidebar.title("File Upload")
+uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type="csv")
+if uploaded_file is not None:
+    data = pd.read_csv(uploaded_file)
+    st.session_state.df_cleaned = clean_data(data.copy())
+    st.sidebar.success("File processed!")
+
+# --- Main App Logic ---
+tab1, tab2 = st.tabs(["Graphs", "Data Sheet"])
 
 with tab1:
-    st.header("Upload Your Data")
-    uploaded_file = st.file_uploader("Upload your CSV file", type="csv")
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
-        st.session_state.df_cleaned = clean_data(data.copy())
-        st.success("File uploaded and processed! Navigate to the 'Graphs and Filters' tab.")
-
-with tab2:
     if st.session_state.df_cleaned is not None:
         df_cleaned = st.session_state.df_cleaned
+        
+        st.sidebar.header("Graph Options and Filters")
+        
+        # --- Graph Options ---
+        graph_options = {
+            "Top 10 Requesters": plot_top_requesters,
+            "Analysis by Engineer": plot_engineer_specific_analysis,
+            "Total Requests per Month": plot_total_requests_per_month,
+            "Requests by Hour (%) Average": plot_requests_by_hour,
+            "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
+            "Hardware Analysis": plot_hardware_analysis,
+        }
+        selected_graph = st.sidebar.selectbox("Choose a graph to display", list(graph_options.keys()))
 
-        filter_container = st.container()
-        with filter_container:
-            st.header("Options and Filters")
+        # --- Breakdown Options ---
+        show_monthly_breakdown = False
+        show_weekday_breakdown = False
+        show_daily_breakdown = False
+        if selected_graph == "Requests by Hour (%) Average":
+            show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Breakdown", key="monthly_breakdown_cb")
+        if selected_graph == "Daily Requests by Weekday (Mon-Fri)":
+            show_weekday_breakdown = st.sidebar.checkbox("Show Monthly Weekday Average", key="weekday_breakdown_cb")
+        if selected_graph == "Total Requests per Month":
+            show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown", key="daily_breakdown_cb")
+
+        # --- Filtering Options ---
+        st.sidebar.header("Data Filters")
+        min_date = df_cleaned['Time'].min().date()
+        max_date = df_cleaned['Time'].max().date()
+        start_date, end_date = st.sidebar.date_input('Filter by Date Range', [min_date, max_date])
+
+        with st.sidebar.expander("Filter by Hardware"):
+            all_hardware = sorted(df_cleaned['Hardware'].unique())
+            select_all_hardware = st.checkbox("Select/Deselect All", value=True, key="select_all_hardware")
+            selected_hardware = []
+            for hardware_type in all_hardware:
+                if st.checkbox(hardware_type, value=select_all_hardware, key=f"hardware_{hardware_type}"):
+                    selected_hardware.append(hardware_type)
+        
+        requester_filter_option = st.sidebar.selectbox(
+            "Filter by Requester",
+            options=["Select All", "Deselect All", "Custom"],
+            index=0
+        )
+        all_requesters = sorted(df_cleaned['Requester'].unique())
+
+        if requester_filter_option == "Select All":
+            selected_requesters = all_requesters
+        elif requester_filter_option == "Deselect All":
+            selected_requesters = []
+        else:  # Custom
+            st.sidebar.subheader("Custom Requester Selection")
+            requester_search = st.sidebar.text_input("Search Requesters", key="custom_requester_search")
             
-            # Use columns to organize filters
-            col1, col2 = st.columns(2)
+            if requester_search:
+                filtered_requesters = [r for r in all_requesters if requester_search.lower() in r.lower()]
+            else:
+                filtered_requesters = all_requesters
 
-            with col1:
-                # --- Graph Options ---
-                graph_options = {
-                    "Top 10 Requesters": plot_top_requesters,
-                    "Analysis by Engineer": plot_engineer_specific_analysis,
-                    "Total Requests per Month": plot_total_requests_per_month,
-                    "Requests by Hour (%) Average": plot_requests_by_hour,
-                    "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
-                    "Hardware Analysis": plot_hardware_analysis,
-                }
-                selected_graph = st.selectbox("Choose a graph to display", list(graph_options.keys()))
-
-                # --- Breakdown Options ---
-                show_monthly_breakdown = False
-                show_weekday_breakdown = False
-                show_daily_breakdown = False
-                if selected_graph == "Requests by Hour (%) Average":
-                    show_monthly_breakdown = st.checkbox("Show Monthly Breakdown", key="monthly_breakdown_cb")
-                if selected_graph == "Daily Requests by Weekday (Mon-Fri)":
-                    show_weekday_breakdown = st.checkbox("Show Monthly Weekday Average", key="weekday_breakdown_cb")
-                if selected_graph == "Total Requests per Month":
-                    show_daily_breakdown = st.checkbox("Show Daily Breakdown", key="daily_breakdown_cb")
-
-            with col2:
-                # --- Filtering Options ---
-                min_date = df_cleaned['Time'].min().date()
-                max_date = df_cleaned['Time'].max().date()
-                start_date, end_date = st.date_input('Filter by Date Range', [min_date, max_date])
-
-                with st.expander("Filter by Hardware"):
-                    all_hardware = sorted(df_cleaned['Hardware'].unique())
-                    select_all_hardware = st.checkbox("Select/Deselect All", value=True, key="select_all_hardware")
-                    selected_hardware = []
-                    for hardware_type in all_hardware:
-                        if st.checkbox(hardware_type, value=select_all_hardware, key=f"hardware_{hardware_type}"):
-                            selected_hardware.append(hardware_type)
-                
-                requester_filter_option = st.selectbox(
-                    "Filter by Requester",
-                    options=["Select All", "Deselect All", "Custom"],
-                    index=0
-                )
-                all_requesters = sorted(df_cleaned['Requester'].unique())
-
-                if requester_filter_option == "Select All":
-                    selected_requesters = all_requesters
-                elif requester_filter_option == "Deselect All":
-                    selected_requesters = []
-                else:  # Custom
-                    st.subheader("Custom Requester Selection")
-                    
-                    select_all_custom = st.checkbox("Select/Deselect All in Custom List", value=True, key="custom_select_all")
-                    
-                    requester_search = st.text_input("Search Requesters", key="custom_requester_search")
-                    
-                    if requester_search:
-                        filtered_requesters = [r for r in all_requesters if requester_search.lower() in r.lower()]
-                    else:
-                        filtered_requesters = all_requesters
-
-                    requester_container = st.container(height=200)
-                    selected_requesters = []
-                    with requester_container:
-                        for requester in filtered_requesters:
-                            if st.checkbox(requester, value=select_all_custom, key=f"custom_requester_{requester}"):
-                                selected_requesters.append(requester)
+            requester_container = st.sidebar.container(height=200)
+            selected_requesters = []
+            with requester_container:
+                for requester in filtered_requesters:
+                    if st.checkbox(requester, value=True, key=f"custom_requester_{requester}"):
+                        selected_requesters.append(requester)
 
         # Apply filters
         filtered_df = df_cleaned[
@@ -408,7 +400,7 @@ with tab2:
                 graph_function(filtered_df)
             else:
                 st.warning("No data available for the selected filters.")
-
+        
         # --- Conditional Monthly Breakdown ---
         if selected_graph == "Requests by Hour (%) Average" and show_monthly_breakdown:
             if not filtered_df.empty:
@@ -540,23 +532,19 @@ with tab2:
                         ax.grid(axis='y')
                         st.pyplot(fig)
     else:
-        st.info("Please upload a CSV file in the 'Data Upload' tab to get started.")
+        st.info("Please upload a CSV file using the sidebar to get started.")
 
-with tab3:
+with tab2:
     if st.session_state.df_cleaned is not None:
         df_cleaned = st.session_state.df_cleaned
         st.header("Requester Language Codes")
         
-        # Get unique requesters
         unique_requesters = sorted(df_cleaned['Requester'].unique())
         
-        # Create a dataframe for the data sheet
         data_sheet_df = pd.DataFrame(unique_requesters, columns=["Requester"])
         
-        # Add a column for language code selection
         data_sheet_df['Language Code'] = ""
         
-        # Display the editable dataframe
         edited_df = st.data_editor(
             data_sheet_df,
             column_config={
@@ -570,4 +558,4 @@ with tab3:
             hide_index=True,
         )
     else:
-        st.info("Please upload a CSV file in the 'Data Upload' tab to get started.")
+        st.info("Please upload a CSV file using the sidebar to get started.")
