@@ -367,6 +367,9 @@ with tab1:
             selected_requesters = []
         else:  # Custom
             st.sidebar.subheader("Custom Requester Selection")
+            
+            select_all_custom = st.sidebar.checkbox("Select/Deselect All", value=True, key="custom_select_all")
+            
             requester_search = st.sidebar.text_input("Search Requesters", key="custom_requester_search")
             
             if requester_search:
@@ -378,7 +381,7 @@ with tab1:
             selected_requesters = []
             with requester_container:
                 for requester in filtered_requesters:
-                    if st.checkbox(requester, value=True, key=f"custom_requester_{requester}"):
+                    if st.checkbox(requester, value=select_all_custom, key=f"custom_requester_{requester}"):
                         selected_requesters.append(requester)
 
         # Apply filters
