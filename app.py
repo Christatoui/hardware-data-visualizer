@@ -285,11 +285,23 @@ def plot_engineer_specific_analysis(df):
 st.set_page_config(layout="wide")
 st.title("Hardware Request Data Visualizer")
 
+# --- Language Codes ---
+LANGUAGE_CODES = {
+    "AB": "Arabic", "B": "English - UK", "BG": "Bulgarian", "BR": "Portuguese - Brazil",
+    "C": "French Canadian", "CA": "Catalan", "CR": "Croatian", "CZ": "Czech",
+    "D": "German", "DK": "Danish", "E": "Spanish", "FU": "French", "GR": "Greek",
+    "H": "Norwegian", "HB": "Hebrew", "HI": "Hindi", "K": "Finnish", "KZ": "Kazakh",
+    "LA": "Spanish LATAM", "LT": "Lithuanian", "MG": "Hungarian", "N": "Dutch",
+    "PL": "Polish", "PO": "Portuguese", "RO": "Romanian", "RS": "Russian",
+    "S": "Swedish", "SV": "Slovenian", "SK": "Slovakian", "T": "Italian",
+    "TU": "Turkish", "UA": "Ukrainian", "X": "English - Australian"
+}
+
 # Initialize session state
 if 'df_cleaned' not in st.session_state:
     st.session_state.df_cleaned = None
 
-tab1, tab2 = st.tabs(["Data Upload", "Graphs and Filters"])
+tab1, tab2, tab3 = st.tabs(["Data Upload", "Graphs and Filters", "Data Sheet"])
 
 with tab1:
     st.header("Upload Your Data")
@@ -527,5 +539,35 @@ with tab2:
 
                         ax.grid(axis='y')
                         st.pyplot(fig)
+    else:
+        st.info("Please upload a CSV file in the 'Data Upload' tab to get started.")
+
+with tab3:
+    if st.session_state.df_cleaned is not None:
+        df_cleaned = st.session_state.df_cleaned
+        st.header("Requester Language Codes")
+        
+        # Get unique requesters
+        unique_requesters = sorted(df_cleaned['Requester'].unique())
+        
+        # Create a dataframe for the data sheet
+        data_sheet_df = pd.DataFrame(unique_requesters, columns=["Requester"])
+        
+        # Add a column for language code selection
+        data_sheet_df['Language Code'] = ""
+        
+        # Display the editable dataframe
+        edited_df = st.data_editor(
+            data_sheet_df,
+            column_config={
+                "Language Code": st.column_config.SelectboxColumn(
+                    "Language Code",
+                    help="Select the language code for the requester",
+                    options=list(LANGUAGE_CODES.keys()),
+                    required=False,
+                )
+            },
+            hide_index=True,
+        )
     else:
         st.info("Please upload a CSV file in the 'Data Upload' tab to get started.")
