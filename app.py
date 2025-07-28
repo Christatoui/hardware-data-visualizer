@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+# --- Constants ---
+ASSIGNMENT_FILE = 'AppRoo/FrontEnd/language_assignments.csv'
+
 # --- Data Cleaning and Processing Functions ---
 def clean_data(df):
     """Cleans and preprocesses the hardware request data."""
@@ -16,7 +19,6 @@ def clean_data(df):
     df.loc[df['Hardware'].str.contains('^Windows PC', case=False, na=False), 'Hardware'] = 'PC'
     df.loc[df['Hardware'].str.contains('Other', case=False, na=False), 'Hardware'] = 'Other'
     
-    # Normalize requester names by removing (V) suffix
     df['Requester'] = df['Requester'].str.replace(r'\s*\([Vv]\)\s*$', '', regex=True).str.strip()
 
     def parse_dates(date_str):
@@ -32,25 +34,31 @@ def clean_data(df):
     df = df[df['Time'].dt.year >= 2024]
     return df
 
+# --- Language Assignment Functions ---
+def load_language_assignments():
+    """Loads language assignments from the CSV file."""
+    if os.path.exists(ASSIGNMENT_FILE):
+        return pd.read_csv(ASSIGNMENT_FILE)
+    else:
+        return pd.DataFrame(columns=['Requester', 'Language Code'])
+
+def save_language_assignments(df):
+    """Saves language assignments to the CSV file."""
+    df.to_csv(ASSIGNMENT_FILE, index=False)
+
 # --- Plotting Functions ---
 
 def plot_hardware_counts(df):
-    """Plots a bar chart of hardware request counts."""
     fig, ax = plt.subplots(figsize=(12, 8))
     bars = sns.countplot(y='Hardware', data=df, order=df['Hardware'].value_counts().index, palette='viridis', ax=ax)
     ax.set_title('Hardware Request Counts', fontsize=16)
     ax.set_xlabel('Number of Requests', fontsize=12)
     ax.set_ylabel('Hardware Type', fontsize=12)
-
     for bar in bars.patches:
-        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
-                f'{int(bar.get_width())}',
-                va='center', ha='left', size=10)
-
+        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
     st.pyplot(fig)
 
 def plot_top_requesters(df):
-    """Plots a bar chart of the top 10 requesters and allows drill-down."""
     st.subheader("Top 10 Hardware Requesters")
     fig, ax = plt.subplots(figsize=(12, 8))
     top_10_requesters = df['Requester'].value_counts().nlargest(10)
@@ -58,301 +66,177 @@ def plot_top_requesters(df):
     ax.set_title('Top 10 Hardware Requesters', fontsize=16)
     ax.set_xlabel('Number of Requests', fontsize=12)
     ax.set_ylabel('Requester', fontsize=12)
-
     for bar in bars1.patches:
-        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
-                f'{int(bar.get_width())}',
-                va='center', ha='left', size=10)
-
+        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
     st.pyplot(fig)
 
     st.subheader("Drill-down: Top 5 Items for a Requester")
     selected_requester = st.selectbox("Select a requester to see their top 5 items:", top_10_requesters.index)
-
     if selected_requester:
         requester_df = df[df['Requester'] == selected_requester]
         top_5_items = requester_df['Hardware'].value_counts().nlargest(5)
-
         if not top_5_items.empty:
             fig2, ax2 = plt.subplots(figsize=(10, 6))
             bars2 = sns.barplot(x=top_5_items.values, y=top_5_items.index, palette='magma', ax=ax2)
             ax2.set_title(f"Top 5 Hardware Requests for {selected_requester}", fontsize=14)
             ax2.set_xlabel("Number of Requests", fontsize=10)
             ax2.set_ylabel("Hardware Type", fontsize=10)
-
             for bar in bars2.patches:
-                ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
-                        f'{int(bar.get_width())}',
-                        va='center', ha='left', size=10)
-
+                ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
             st.pyplot(fig2)
         else:
             st.info(f"No hardware request data found for {selected_requester}.")
 
-
 def plot_requests_by_hour(df):
-    """Plots a bar chart showing the percentage of requests between 7 AM and 6 PM."""
     df['Hour'] = df['Time'].dt.hour
     df_filtered_by_hour = df[(df['Hour'] >= 7) & (df['Hour'] <= 18)]
-    
     if df_filtered_by_hour.empty:
         st.warning("No request data available between 7 AM and 6 PM.")
         return
-
     hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
     all_hours = pd.Index(range(7, 19), name="Hour")
     hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
-    
     fig, ax = plt.subplots(figsize=(12, 6))
     bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='twilight', ax=ax)
     ax.set_title('Requests by Hour (%) Average (7 AM - 6 PM)', fontsize=16)
     ax.set_xlabel('Hour of the Day', fontsize=12)
     ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
-    
     for bar in bars.patches:
-        ax.annotate(f'{bar.get_height():.1f}%',
-                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                    ha='center', va='center',
-                    size=10, xytext=(0, 8),
-                    textcoords='offset points')
-
+        ax.annotate(f'{bar.get_height():.1f}%', (bar.get_x() + bar.get_width() / 2, bar.get_height()), ha='center', va='center', size=10, xytext=(0, 8), textcoords='offset points')
     ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
     st.pyplot(fig)
 
 def plot_daily_requests_by_weekday(df):
-    """Plots a bar chart of the average number of requests for each weekday (Mon-Fri)."""
     df['Weekday'] = df['Time'].dt.day_name()
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-    
     df_weekdays = df[df['Weekday'].isin(weekday_order)]
-    
     if df_weekdays.empty:
         st.warning("No data available for weekdays (Mon-Fri) in the selected range.")
         return
-        
     num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
-    if num_weeks < 1:
-        num_weeks = 1
-
+    if num_weeks < 1: num_weeks = 1
     weekday_counts = df_weekdays['Weekday'].value_counts()
     average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
-
     fig, ax = plt.subplots(figsize=(10, 6))
     bars = sns.barplot(x=average_counts.index, y=average_counts.values, palette='crest', ax=ax)
     ax.set_title('Average Daily Requests by Weekday (Mon-Fri)', fontsize=16)
     ax.set_xlabel('Day of the Week', fontsize=12)
     ax.set_ylabel('Average Number of Requests', fontsize=12)
-    
     for bar in bars.patches:
-        ax.annotate(f'{bar.get_height():.1f}',
-                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                    ha='center', va='center',
-                    size=10, xytext=(0, 8),
-                    textcoords='offset points')
-                    
+        ax.annotate(f'{bar.get_height():.1f}', (bar.get_x() + bar.get_width() / 2, bar.get_height()), ha='center', va='center', size=10, xytext=(0, 8), textcoords='offset points')
     st.pyplot(fig)
 
 def plot_total_requests_per_month(df):
-    """Plots a bar chart of the total number of requests per month."""
     df['Month'] = df['Time'].dt.to_period('M')
     monthly_counts = df['Month'].value_counts().sort_index()
-    
     monthly_counts.index = monthly_counts.index.strftime('%B %Y')
-
     fig, ax = plt.subplots(figsize=(12, 6))
     bars = sns.barplot(x=monthly_counts.index, y=monthly_counts.values, palette='cubehelix', ax=ax)
     ax.set_title('Total Requests per Month', fontsize=16)
     ax.set_xlabel('Month', fontsize=12)
     ax.set_ylabel('Total Number of Requests', fontsize=12)
-    
     for bar in bars.patches:
-        ax.annotate(f'{int(bar.get_height())}',
-                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                    ha='center', va='center',
-                    size=10, xytext=(0, 8),
-                    textcoords='offset points')
-
+        ax.annotate(f'{int(bar.get_height())}', (bar.get_x() + bar.get_width() / 2, bar.get_height()), ha='center', va='center', size=10, xytext=(0, 8), textcoords='offset points')
     ax.tick_params(axis='x', rotation=45)
     st.pyplot(fig)
 
 def plot_hardware_analysis(df):
-    """Combines Hardware Request Counts and Analysis by Hardware Type."""
     plot_hardware_counts(df)
-    
     st.header("Drill-down Analysis")
     hardware_to_analyze = st.selectbox("Select a hardware type to analyze its top requesters:", df['Hardware'].unique())
-
     if hardware_to_analyze:
         specific_hardware_df = df[df['Hardware'] == hardware_to_analyze]
-
         if specific_hardware_df.empty:
             st.warning(f"No data available for hardware: {hardware_to_analyze}")
             return
-
         st.subheader(f"Top 10 Requesters for '{hardware_to_analyze}'")
         top_10_requesters = specific_hardware_df['Requester'].value_counts().nlargest(10)
-
         if top_10_requesters.empty:
             st.info(f"No requesters found for '{hardware_to_analyze}'.")
             return
-
         fig, ax = plt.subplots(figsize=(12, 8))
         bars = sns.barplot(x=top_10_requesters.values, y=top_10_requesters.index, palette='viridis', ax=ax)
         ax.set_title(f"Top 10 Requesters for '{hardware_to_analyze}'", fontsize=16)
         ax.set_xlabel('Number of Requests', fontsize=12)
         ax.set_ylabel('Requester', fontsize=12)
-
         for bar in bars.patches:
-            ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
-                    f'{int(bar.get_width())}',
-                    va='center', ha='left', size=10)
-
+            ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
         st.pyplot(fig)
 
-        st.subheader("Drill-down: Top 5 Items for a Requester")
-        selected_requester = st.selectbox("Select a requester to see their top 5 items:", top_10_requesters.index, key="hardware_analysis_drilldown")
-
-        if selected_requester:
-            requester_df = df[df['Requester'] == selected_requester]
-            top_5_items = requester_df['Hardware'].value_counts().nlargest(5)
-
-            if not top_5_items.empty:
-                fig2, ax2 = plt.subplots(figsize=(10, 6))
-                bars2 = sns.barplot(x=top_5_items.values, y=top_5_items.index, palette='magma', ax=ax2)
-                ax2.set_title(f"Top 5 Hardware Requests for {selected_requester}", fontsize=14)
-                ax2.set_xlabel("Number of Requests", fontsize=10)
-                ax2.set_ylabel("Hardware Type", fontsize=10)
-
-                for bar in bars2.patches:
-                    ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
-                            f'{int(bar.get_width())}',
-                            va='center', ha='left', size=10)
-
-                st.pyplot(fig2)
-            else:
-                st.info(f"No hardware request data found for {selected_requester}.")
-
 def plot_engineer_specific_analysis(df):
-    """Provides an analysis view for a selected engineer."""
     all_engineers = sorted(df['Requester'].unique())
-    
     search_term = st.text_input("Search for an engineer:")
-    
     if search_term:
         filtered_engineers = [eng for eng in all_engineers if search_term.lower() in eng.lower()]
     else:
         filtered_engineers = all_engineers
-
     if not filtered_engineers:
         st.warning("No engineers found matching your search.")
         return
-
     engineer_to_analyze = st.selectbox("Select an engineer to analyze:", filtered_engineers)
-
     if engineer_to_analyze:
         engineer_df = df[df['Requester'] == engineer_to_analyze]
-        
         if engineer_df.empty:
             st.warning(f"No data available for engineer: {engineer_to_analyze}")
             return
-
         hardware_counts = engineer_df['Hardware'].value_counts()
         total_requests = hardware_counts.sum()
         hardware_percentages = (hardware_counts / total_requests) * 100
-
         fig, ax = plt.subplots(figsize=(12, 8))
         bars = sns.barplot(x=hardware_counts.values, y=hardware_counts.index, palette='coolwarm', ax=ax)
         ax.set_title(f"Hardware Requests for {engineer_to_analyze}", fontsize=16)
         ax.set_xlabel('Number of Requests', fontsize=12)
         ax.set_ylabel('Hardware Type', fontsize=12)
-
         for i, bar in enumerate(bars.patches):
-            ax.annotate(f'{hardware_percentages.iloc[i]:.1f}%',
-                        (bar.get_width(), bar.get_y() + bar.get_height() / 2),
-                        ha='center', va='center',
-                        size=10, xytext=(20, 0),
-                        textcoords='offset points')
-            ax.annotate(f'{int(bar.get_width())}',
-                        (bar.get_width(), bar.get_y() + bar.get_height() / 2),
-                        ha='center', va='center',
-                        size=10, xytext=(-20, 0),
-                        textcoords='offset points',
-                        color='white')
-        
+            ax.annotate(f'{hardware_percentages.iloc[i]:.1f}%', (bar.get_width(), bar.get_y() + bar.get_height() / 2), ha='center', va='center', size=10, xytext=(20, 0), textcoords='offset points')
+            ax.annotate(f'{int(bar.get_width())}', (bar.get_width(), bar.get_y() + bar.get_height() / 2), ha='center', va='center', size=10, xytext=(-20, 0), textcoords='offset points', color='white')
         ax.set_xlim(right=ax.get_xlim()[1] + 1)
-        
         st.pyplot(fig)
 
 def plot_top_languages(df, language_df):
-    """Plots top 10 languages by requester count and top 5 devices for a selected language."""
     st.header("Top 10 Languages by Requester Count")
-
-    if 'Requester' not in language_df.columns or 'Language Code' not in language_df.columns:
-        st.error("Data Sheet is missing 'Requester' or 'Language Code' columns.")
-        return
-
-    assigned_languages = language_df.dropna(subset=['Language Code'])
-    assigned_languages = assigned_languages[assigned_languages['Language Code'] != '']
-
-    if assigned_languages.empty:
+    if language_df.empty or 'Language Code' not in language_df.columns or language_df['Language Code'].dropna().empty:
         st.warning("No language codes have been assigned in the 'Data Sheet' tab. Please assign them to see this graph.")
         return
-
-    language_counts = assigned_languages['Language Code'].value_counts().nlargest(10)
     
+    language_counts = language_df['Language Code'].value_counts().nlargest(10)
     language_counts.index = language_counts.index.map(LANGUAGE_CODES)
-
     fig, ax = plt.subplots(figsize=(12, 8))
     bars = sns.barplot(x=language_counts.values, y=language_counts.index, palette='rocket', ax=ax)
     ax.set_title('Top 10 Languages by Number of Requesters', fontsize=16)
     ax.set_xlabel('Number of Requesters', fontsize=12)
     ax.set_ylabel('Language', fontsize=12)
-
     for bar in bars.patches:
-        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
-                f'{int(bar.get_width())}',
-                va='center', ha='left', size=10)
+        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
     st.pyplot(fig)
 
     st.header("Drill-down: Top 5 Devices by Language")
-    
     code_to_name = {v: k for k, v in LANGUAGE_CODES.items()}
     selected_language_name = st.selectbox("Select a language to see its top 5 devices:", language_counts.index)
-
     if selected_language_name:
         selected_language_code = code_to_name[selected_language_name]
-        
-        requesters_in_language = assigned_languages[assigned_languages['Language Code'] == selected_language_code]['Requester'].tolist()
-        
+        requesters_in_language = language_df[language_df['Language Code'] == selected_language_code]['Requester'].tolist()
         language_specific_df = df[df['Requester'].isin(requesters_in_language)]
-
         if language_specific_df.empty:
             st.info(f"No request data found for the language: {selected_language_name}")
             return
-
         top_5_devices = language_specific_df['Hardware'].value_counts().nlargest(5)
-
         if not top_5_devices.empty:
             fig2, ax2 = plt.subplots(figsize=(10, 6))
             bars2 = sns.barplot(x=top_5_devices.values, y=top_5_devices.index, palette='mako', ax=ax2)
             ax2.set_title(f"Top 5 Hardware Requests in {selected_language_name}", fontsize=14)
             ax2.set_xlabel("Number of Requests", fontsize=10)
             ax2.set_ylabel("Hardware Type", fontsize=10)
-
             for bar in bars2.patches:
-                ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
-                        f'{int(bar.get_width())}',
-                        va='center', ha='left', size=10)
+                ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
             st.pyplot(fig2)
         else:
             st.info(f"No hardware request data found for requesters in {selected_language_name}.")
 
 # --- Streamlit App ---
-
 st.set_page_config(layout="wide")
 st.title("Hardware Request Data Visualizer")
 
-# --- Language Codes ---
 LANGUAGE_CODES = {
     "AB": "Arabic", "B": "English - UK", "BG": "Bulgarian", "BR": "Portuguese - Brazil",
     "C": "French Canadian", "CA": "Catalan", "CR": "Croatian", "CZ": "Czech",
@@ -364,13 +248,11 @@ LANGUAGE_CODES = {
     "TU": "Turkish", "UA": "Ukrainian", "X": "English - Australian"
 }
 
-# Initialize session state
+# Load data and initialize session state
 if 'df_cleaned' not in st.session_state:
     st.session_state.df_cleaned = None
-if 'language_data' not in st.session_state:
-    st.session_state.language_data = None
+st.session_state.language_data = load_language_assignments()
 
-# --- Sidebar ---
 st.sidebar.title("File Upload")
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type="csv")
 if uploaded_file is not None:
@@ -378,16 +260,13 @@ if uploaded_file is not None:
     st.session_state.df_cleaned = clean_data(data.copy())
     st.sidebar.success("File processed!")
 
-# --- Main App Logic ---
 tab1, tab2 = st.tabs(["Graphs", "Data Sheet"])
 
 with tab1:
     if st.session_state.df_cleaned is not None:
         df_cleaned = st.session_state.df_cleaned
-        
         st.sidebar.header("Graph Options and Filters")
         
-        # --- Graph Options ---
         graph_options = {
             "Top 10 by Language": plot_top_languages,
             "Top 10 Requesters": plot_top_requesters,
@@ -399,7 +278,6 @@ with tab1:
         }
         selected_graph = st.sidebar.selectbox("Choose a graph to display", list(graph_options.keys()))
 
-        # --- Breakdown Options ---
         show_monthly_breakdown = False
         show_weekday_breakdown = False
         show_daily_breakdown = False
@@ -410,7 +288,6 @@ with tab1:
         if selected_graph == "Total Requests per Month":
             show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown", key="daily_breakdown_cb")
 
-        # --- Filtering Options ---
         st.sidebar.header("Data Filters")
         min_date = df_cleaned['Time'].min().date()
         max_date = df_cleaned['Time'].max().date()
@@ -419,58 +296,31 @@ with tab1:
         with st.sidebar.expander("Filter by Hardware"):
             all_hardware = sorted(df_cleaned['Hardware'].unique())
             select_all_hardware = st.checkbox("Select/Deselect All", value=True, key="select_all_hardware")
-            selected_hardware = []
-            for hardware_type in all_hardware:
-                if st.checkbox(hardware_type, value=select_all_hardware, key=f"hardware_{hardware_type}"):
-                    selected_hardware.append(hardware_type)
+            selected_hardware = [hw for hw in all_hardware if st.checkbox(hw, value=select_all_hardware, key=f"hardware_{hw}")]
         
-        requester_filter_option = st.sidebar.selectbox(
-            "Filter by Requester",
-            options=["Select All", "Deselect All", "Custom"],
-            index=0
-        )
+        requester_filter_option = st.sidebar.selectbox("Filter by Requester", ["Select All", "Deselect All", "Custom"], index=0)
         all_requesters = sorted(df_cleaned['Requester'].unique())
-
         if requester_filter_option == "Select All":
             selected_requesters = all_requesters
         elif requester_filter_option == "Deselect All":
             selected_requesters = []
-        else:  # Custom
+        else:
             st.sidebar.subheader("Custom Requester Selection")
-            
             select_all_custom = st.sidebar.checkbox("Select/Deselect All", value=True, key="custom_select_all")
-            
             requester_search = st.sidebar.text_input("Search Requesters", key="custom_requester_search")
-            
             if requester_search:
                 filtered_requesters = [r for r in all_requesters if requester_search.lower() in r.lower()]
             else:
                 filtered_requesters = all_requesters
-
             requester_container = st.sidebar.container(height=200)
-            selected_requesters = []
-            with requester_container:
-                for requester in filtered_requesters:
-                    if st.checkbox(requester, value=select_all_custom, key=f"custom_requester_{requester}"):
-                        selected_requesters.append(requester)
+            selected_requesters = [req for req in filtered_requesters if requester_container.checkbox(req, value=select_all_custom, key=f"custom_requester_{req}")]
 
-        # Apply filters
-        filtered_df = df_cleaned[
-            (df_cleaned['Hardware'].isin(selected_hardware)) &
-            (df_cleaned['Requester'].isin(selected_requesters)) &
-            (df_cleaned['Time'].dt.date >= start_date) &
-            (df_cleaned['Time'].dt.date <= end_date)
-        ]
+        filtered_df = df_cleaned[(df_cleaned['Hardware'].isin(selected_hardware)) & (df_cleaned['Requester'].isin(selected_requesters)) & (df_cleaned['Time'].dt.date >= start_date) & (df_cleaned['Time'].dt.date <= end_date)]
 
-        # --- Display Graphs ---
         st.header(selected_graph)
         graph_function = graph_options[selected_graph]
-
         if selected_graph == "Top 10 by Language":
-            if st.session_state.language_data is not None:
-                graph_function(filtered_df, st.session_state.language_data)
-            else:
-                st.warning("Please assign language codes in the 'Data Sheet' tab first.")
+            graph_function(filtered_df, st.session_state.language_data)
         elif selected_graph in ["Hardware Analysis", "Analysis by Engineer"]:
             graph_function(df_cleaned)
         else:
@@ -478,137 +328,6 @@ with tab1:
                 graph_function(filtered_df)
             else:
                 st.warning("No data available for the selected filters.")
-        
-        # --- Conditional Monthly Breakdown ---
-        if selected_graph == "Requests by Hour (%) Average" and show_monthly_breakdown:
-            if not filtered_df.empty:
-                st.header("Monthly Breakdown: Requests by Hour (%) Average")
-                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
-
-                for month in unique_months:
-                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
-                    if not monthly_df.empty:
-                        st.subheader(f"Analysis for {month.strftime('%B %Y')}")
-                        
-                        monthly_df['Hour'] = monthly_df['Time'].dt.hour
-                        df_filtered_by_hour = monthly_df[(monthly_df['Hour'] >= 7) & (monthly_df['Hour'] <= 18)]
-
-                        if df_filtered_by_hour.empty:
-                            st.warning(f"No request data available between 7 AM and 6 PM for {month.strftime('%B %Y')}.")
-                            continue
-
-                        hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
-                        all_hours = pd.Index(range(7, 19), name="Hour")
-                        hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
-                        
-                        fig, ax = plt.subplots(figsize=(12, 6))
-                        bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='viridis', ax=ax)
-                        ax.set_title(f'Requests by Hour (%) for {month.strftime("%B %Y")}', fontsize=16)
-                        ax.set_xlabel('Hour of the Day', fontsize=12)
-                        ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
-                        
-                        for bar in bars.patches:
-                            ax.annotate(f'{bar.get_height():.1f}%',
-                                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                                        ha='center', va='center',
-                                        size=10, xytext=(0, 8),
-                                        textcoords='offset points')
-
-                        ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
-                        st.pyplot(fig)
-
-        if selected_graph == "Daily Requests by Weekday (Mon-Fri)" and show_weekday_breakdown:
-            if not filtered_df.empty:
-                st.header("Monthly Breakdown: Average Daily Requests by Weekday")
-                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
-
-                for month in unique_months:
-                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
-                    if not monthly_df.empty:
-                        st.subheader(f"Analysis for {month.strftime('%B %Y')}")
-                        
-                        monthly_df['Weekday'] = monthly_df['Time'].dt.day_name()
-                        weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-                        df_weekdays = monthly_df[monthly_df['Weekday'].isin(weekday_order)]
-
-                        if df_weekdays.empty:
-                            st.warning(f"No weekday data for {month.strftime('%B %Y')}.")
-                            continue
-                        
-                        num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
-                        if num_weeks < 1:
-                            num_weeks = 1
-
-                        weekday_counts = df_weekdays['Weekday'].value_counts()
-                        average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
-
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        bars = sns.barplot(x=average_counts.index, y=average_counts.values, palette='crest', ax=ax)
-                        ax.set_title(f'Average Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
-                        ax.set_xlabel('Day of the Week', fontsize=12)
-                        ax.set_ylabel('Average Number of Requests', fontsize=12)
-                        
-                        for bar in bars.patches:
-                            ax.annotate(f'{bar.get_height():.1f}',
-                                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                                        ha='center', va='center',
-                                        size=10, xytext=(0, 8),
-                                        textcoords='offset points')
-                        st.pyplot(fig)
-
-        if selected_graph == "Total Requests per Month" and show_daily_breakdown:
-            if not filtered_df.empty:
-                st.header("Daily Breakdown of Total Requests")
-                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
-
-                for month in unique_months:
-                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
-                    if not monthly_df.empty:
-                        st.subheader(f"Daily Requests for {month.strftime('%B %Y')}")
-                        
-                        daily_counts = monthly_df['Time'].dt.date.value_counts()
-                        
-                        start_of_month = month.to_timestamp()
-                        end_of_month = start_of_month + pd.offsets.MonthEnd(1)
-                        all_days_in_month = pd.date_range(start=start_of_month, end=end_of_month, freq='D').date
-                        
-                        daily_counts.index = pd.to_datetime(daily_counts.index)
-                        daily_counts = daily_counts.reindex(pd.to_datetime(all_days_in_month), fill_value=0)
-
-                        fig, ax = plt.subplots(figsize=(15, 6))
-                        bars = sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
-                        ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
-                        ax.set_xlabel('Date', fontsize=12)
-                        ax.set_ylabel('Number of Requests', fontsize=12)
-                        
-                        daily_counts_df = daily_counts.reset_index()
-                        daily_counts_df.columns = ['Date', 'Count']
-                        daily_counts_df['Week'] = pd.to_datetime(daily_counts_df['Date']).dt.to_period('W')
-                        weekly_totals = daily_counts_df.groupby('Week')['Count'].transform('sum')
-                        
-                        weekly_percentages = (daily_counts_df['Count'] / weekly_totals.replace(0, 1)) * 100
-
-                        for i, bar in enumerate(bars.patches):
-                            if bar.get_height() > 0:
-                                ax.annotate(f'{weekly_percentages[i]:.1f}%',
-                                            (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                                            ha='center', va='center',
-                                            size=8, xytext=(0, 8),
-                                            textcoords='offset points')
-                                day_of_week = daily_counts.index[i].strftime('%a')[:2]
-                                ax.annotate(day_of_week,
-                                            (bar.get_x() + bar.get_width() / 2, 0),
-                                            ha='center', va='bottom',
-                                            size=7, xytext=(0, 2),
-                                            textcoords='offset points',
-                                            color='gray')
-
-                        date_labels = [item.get_text() for item in ax.get_xticklabels()]
-                        new_labels = [label if pd.to_datetime(label).weekday() == 0 else '' for label in date_labels]
-                        ax.set_xticklabels(new_labels, rotation=45, ha="right")
-
-                        ax.grid(axis='y')
-                        st.pyplot(fig)
     else:
         st.info("Please upload a CSV file using the sidebar to get started.")
 
@@ -617,32 +336,32 @@ with tab2:
         df_cleaned = st.session_state.df_cleaned
         st.header("Requester Language Codes")
         
-        unique_requesters = sorted(df_cleaned['Requester'].unique())
+        unique_requesters_df = pd.DataFrame(df_cleaned['Requester'].unique(), columns=['Requester'])
         
-        # Initialize the data sheet dataframe
-        data_sheet_df = pd.DataFrame(unique_requesters, columns=["Requester"])
-        data_sheet_df['Language Code'] = ""
-        
-        # If language data already exists in session state, use it
-        if st.session_state.language_data is not None:
-            # Merge to preserve existing selections
-            # This ensures that if the underlying data changes, we don't lose old assignments
-            existing_data = st.session_state.language_data
-            data_sheet_df = pd.merge(data_sheet_df[['Requester']], existing_data, on='Requester', how='left').fillna('')
+        # Merge with existing assignments to pre-populate
+        current_assignments = st.session_state.language_data
+        if not current_assignments.empty:
+            # Use outer merge to keep all requesters from both lists
+            merged_df = pd.merge(unique_requesters_df, current_assignments, on='Requester', how='outer').fillna('')
+        else:
+            merged_df = unique_requesters_df
+            merged_df['Language Code'] = ''
 
+        # Ensure no duplicate requesters before showing editor
+        merged_df.drop_duplicates(subset=['Requester'], inplace=True)
 
         edited_df = st.data_editor(
-            data_sheet_df,
+            merged_df,
             column_config={
-                "Language Code": st.column_config.SelectboxColumn(
-                    "Language Code",
-                    help="Select the language code for the requester",
-                    options=list(LANGUAGE_CODES.keys()),
-                    required=False,
-                )
+                "Language Code": st.column_config.SelectboxColumn("Language Code", help="Select the language code for the requester", options=list(LANGUAGE_CODES.keys()), required=False)
             },
             hide_index=True,
         )
-        st.session_state.language_data = edited_df
+        
+        # Save any changes back to the file
+        if not edited_df.equals(merged_df):
+            save_language_assignments(edited_df)
+            st.session_state.language_data = edited_df
+            st.success("Language assignments saved!")
     else:
         st.info("Please upload a CSV file using the sidebar to get started.")
