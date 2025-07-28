@@ -39,7 +39,6 @@ def plot_hardware_counts(df):
     ax.set_xlabel('Number of Requests', fontsize=12)
     ax.set_ylabel('Hardware Type', fontsize=12)
 
-    # Add total number labels to the end of each bar
     for bar in bars.patches:
         ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
                 f'{int(bar.get_width())}',
@@ -57,7 +56,6 @@ def plot_top_requesters(df):
     ax.set_xlabel('Number of Requests', fontsize=12)
     ax.set_ylabel('Requester', fontsize=12)
 
-    # Add total number labels to the end of each bar
     for bar in bars1.patches:
         ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
                 f'{int(bar.get_width())}',
@@ -79,7 +77,6 @@ def plot_top_requesters(df):
             ax2.set_xlabel("Number of Requests", fontsize=10)
             ax2.set_ylabel("Hardware Type", fontsize=10)
 
-            # Add total number labels to the end of each bar
             for bar in bars2.patches:
                 ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
                         f'{int(bar.get_width())}',
@@ -93,7 +90,6 @@ def plot_top_requesters(df):
 def plot_requests_by_hour(df):
     """Plots a bar chart showing the percentage of requests between 7 AM and 6 PM."""
     df['Hour'] = df['Time'].dt.hour
-    # Filter for hours between 7 AM (7) and 6 PM (18)
     df_filtered_by_hour = df[(df['Hour'] >= 7) & (df['Hour'] <= 18)]
     
     if df_filtered_by_hour.empty:
@@ -101,7 +97,6 @@ def plot_requests_by_hour(df):
         return
 
     hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
-    # Ensure all hours from 7 to 18 are present, filling missing ones with 0
     all_hours = pd.Index(range(7, 19), name="Hour")
     hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
     
@@ -111,7 +106,6 @@ def plot_requests_by_hour(df):
     ax.set_xlabel('Hour of the Day', fontsize=12)
     ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
     
-    # Add percentage labels on top of each bar
     for bar in bars.patches:
         ax.annotate(f'{bar.get_height():.1f}%',
                     (bar.get_x() + bar.get_width() / 2, bar.get_height()),
@@ -119,7 +113,6 @@ def plot_requests_by_hour(df):
                     size=10, xytext=(0, 8),
                     textcoords='offset points')
 
-    # Set the limits of the x-axis to trim empty space
     ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
     st.pyplot(fig)
 
@@ -128,19 +121,16 @@ def plot_daily_requests_by_weekday(df):
     df['Weekday'] = df['Time'].dt.day_name()
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     
-    # Filter for Monday to Friday
     df_weekdays = df[df['Weekday'].isin(weekday_order)]
     
     if df_weekdays.empty:
         st.warning("No data available for weekdays (Mon-Fri) in the selected range.")
         return
         
-    # Calculate the number of unique weeks in the dataset to get a proper average
     num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
     if num_weeks < 1:
-        num_weeks = 1 # Avoid division by zero if the range is less than a week
+        num_weeks = 1
 
-    # Get total counts per weekday and calculate the average
     weekday_counts = df_weekdays['Weekday'].value_counts()
     average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
 
@@ -150,7 +140,6 @@ def plot_daily_requests_by_weekday(df):
     ax.set_xlabel('Day of the Week', fontsize=12)
     ax.set_ylabel('Average Number of Requests', fontsize=12)
     
-    # Add average number labels on top of each bar
     for bar in bars.patches:
         ax.annotate(f'{bar.get_height():.1f}',
                     (bar.get_x() + bar.get_width() / 2, bar.get_height()),
@@ -165,7 +154,6 @@ def plot_total_requests_per_month(df):
     df['Month'] = df['Time'].dt.to_period('M')
     monthly_counts = df['Month'].value_counts().sort_index()
     
-    # Convert Period to string for plotting
     monthly_counts.index = monthly_counts.index.strftime('%B %Y')
 
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -174,7 +162,6 @@ def plot_total_requests_per_month(df):
     ax.set_xlabel('Month', fontsize=12)
     ax.set_ylabel('Total Number of Requests', fontsize=12)
     
-    # Add total number labels on top of each bar
     for bar in bars.patches:
         ax.annotate(f'{int(bar.get_height())}',
                     (bar.get_x() + bar.get_width() / 2, bar.get_height()),
@@ -190,18 +177,15 @@ def plot_hardware_analysis(df):
     plot_hardware_counts(df)
     
     st.header("Drill-down Analysis")
-    # Dropdown to select a single hardware type
     hardware_to_analyze = st.selectbox("Select a hardware type to analyze its top requesters:", df['Hardware'].unique())
 
     if hardware_to_analyze:
-        # Filter the dataframe for the selected hardware
         specific_hardware_df = df[df['Hardware'] == hardware_to_analyze]
 
         if specific_hardware_df.empty:
             st.warning(f"No data available for hardware: {hardware_to_analyze}")
             return
 
-        # --- Top 10 Requesters for this Hardware ---
         st.subheader(f"Top 10 Requesters for '{hardware_to_analyze}'")
         top_10_requesters = specific_hardware_df['Requester'].value_counts().nlargest(10)
 
@@ -215,7 +199,6 @@ def plot_hardware_analysis(df):
         ax.set_xlabel('Number of Requests', fontsize=12)
         ax.set_ylabel('Requester', fontsize=12)
 
-        # Add total number labels to the end of each bar
         for bar in bars.patches:
             ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
                     f'{int(bar.get_width())}',
@@ -223,12 +206,10 @@ def plot_hardware_analysis(df):
 
         st.pyplot(fig)
 
-        # --- Drill-down for a specific requester ---
         st.subheader("Drill-down: Top 5 Items for a Requester")
         selected_requester = st.selectbox("Select a requester to see their top 5 items:", top_10_requesters.index, key="hardware_analysis_drilldown")
 
         if selected_requester:
-            # Filter the original dataframe for the selected requester
             requester_df = df[df['Requester'] == selected_requester]
             top_5_items = requester_df['Hardware'].value_counts().nlargest(5)
 
@@ -239,7 +220,6 @@ def plot_hardware_analysis(df):
                 ax2.set_xlabel("Number of Requests", fontsize=10)
                 ax2.set_ylabel("Hardware Type", fontsize=10)
 
-                # Add total number labels to the end of each bar
                 for bar in bars2.patches:
                     ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
                             f'{int(bar.get_width())}',
@@ -253,10 +233,8 @@ def plot_engineer_specific_analysis(df):
     """Provides an analysis view for a selected engineer."""
     all_engineers = sorted(df['Requester'].unique())
     
-    # Add a text input for searching
     search_term = st.text_input("Search for an engineer:")
     
-    # Filter engineers based on the search term
     if search_term:
         filtered_engineers = [eng for eng in all_engineers if search_term.lower() in eng.lower()]
     else:
@@ -286,13 +264,11 @@ def plot_engineer_specific_analysis(df):
         ax.set_ylabel('Hardware Type', fontsize=12)
 
         for i, bar in enumerate(bars.patches):
-            # Percentage on top
             ax.annotate(f'{hardware_percentages.iloc[i]:.1f}%',
                         (bar.get_width(), bar.get_y() + bar.get_height() / 2),
                         ha='center', va='center',
                         size=10, xytext=(20, 0),
                         textcoords='offset points')
-            # Count at the bottom
             ax.annotate(f'{int(bar.get_width())}',
                         (bar.get_width(), bar.get_y() + bar.get_height() / 2),
                         ha='center', va='center',
@@ -300,7 +276,6 @@ def plot_engineer_specific_analysis(df):
                         textcoords='offset points',
                         color='white')
         
-        # Add extra space to the x-axis
         ax.set_xlim(right=ax.get_xlim()[1] + 1)
         
         st.pyplot(fig)
@@ -308,289 +283,217 @@ def plot_engineer_specific_analysis(df):
 # --- Streamlit App ---
 
 st.set_page_config(layout="wide")
-
-# Set up ngrok tunnel
-# This will create a public URL for the Streamlit app
-# You may need to provide an auth token if you have a free ngrok account
-# You can set the NGROK_AUTHTOKEN environment variable
 st.title("Hardware Request Data Visualizer")
 
-# --- Language Codes ---
-LANGUAGE_CODES = {
-    "AB": "Arabic", "B": "English - UK", "BG": "Bulgarian", "BR": "Portuguese - Brazil",
-    "C": "French Canadian", "CA": "Catalan", "CR": "Croatian", "CZ": "Czech",
-    "D": "German", "DK": "Danish", "E": "Spanish", "FU": "French", "GR": "Greek",
-    "H": "Norwegian", "HB": "Hebrew", "HI": "Hindi", "K": "Finnish", "KZ": "Kazakh",
-    "LA": "Spanish LATAM", "LT": "Lithuanian", "MG": "Hungarian", "N": "Dutch",
-    "PL": "Polish", "PO": "Portuguese", "RO": "Romanian", "RS": "Russian",
-    "S": "Swedish", "SV": "Slovenian", "SK": "Slovakian", "T": "Italian",
-    "TU": "Turkish", "UA": "Ukrainian", "X": "English - Australian"
-}
+# Initialize session state
+if 'df_cleaned' not in st.session_state:
+    st.session_state.df_cleaned = None
 
-uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type="csv")
+tab1, tab2 = st.tabs(["Data Upload", "Graphs and Filters"])
 
-if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file)
-    st.sidebar.success("File uploaded successfully!")
-    
-    df_cleaned = clean_data(data.copy())
+with tab1:
+    st.header("Upload Your Data")
+    uploaded_file = st.file_uploader("Upload your CSV file", type="csv")
+    if uploaded_file is not None:
+        data = pd.read_csv(uploaded_file)
+        st.session_state.df_cleaned = clean_data(data.copy())
+        st.success("File uploaded and processed! Navigate to the 'Graphs and Filters' tab.")
 
-    # --- Create Tabs ---
-    tab1, tab2 = st.tabs(["Graphs and Filters", "Data Sheet"])
+with tab2:
+    if st.session_state.df_cleaned is not None:
+        df_cleaned = st.session_state.df_cleaned
 
-    with tab1:
-        st.sidebar.header("Graph Options")
-    
-    graph_options = {
-        "Top 10 Requesters": plot_top_requesters,
-        "Analysis by Engineer": plot_engineer_specific_analysis,
-        "Total Requests per Month": plot_total_requests_per_month,
-        "Requests by Hour (%) Average": plot_requests_by_hour,
-        "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
-        "Hardware Analysis": plot_hardware_analysis,
-    }
+        filter_container = st.container()
+        with filter_container:
+            st.header("Options and Filters")
+            
+            # Use columns to organize filters
+            col1, col2 = st.columns(2)
 
-    selected_graph = st.sidebar.selectbox("Choose a graph to display", list(graph_options.keys()))
+            with col1:
+                # --- Graph Options ---
+                graph_options = {
+                    "Top 10 Requesters": plot_top_requesters,
+                    "Analysis by Engineer": plot_engineer_specific_analysis,
+                    "Total Requests per Month": plot_total_requests_per_month,
+                    "Requests by Hour (%) Average": plot_requests_by_hour,
+                    "Daily Requests by Weekday (Mon-Fri)": plot_daily_requests_by_weekday,
+                    "Hardware Analysis": plot_hardware_analysis,
+                }
+                selected_graph = st.selectbox("Choose a graph to display", list(graph_options.keys()))
 
-    # --- Breakdown Options ---
-    st.sidebar.header("Breakdown Options")
-    
-    # Initialize breakdown options to False
-    show_monthly_breakdown = False
-    show_weekday_breakdown = False
-    show_daily_breakdown = False
+                # --- Breakdown Options ---
+                show_monthly_breakdown = False
+                show_weekday_breakdown = False
+                show_daily_breakdown = False
+                if selected_graph == "Requests by Hour (%) Average":
+                    show_monthly_breakdown = st.checkbox("Show Monthly Breakdown", key="monthly_breakdown_cb")
+                if selected_graph == "Daily Requests by Weekday (Mon-Fri)":
+                    show_weekday_breakdown = st.checkbox("Show Monthly Weekday Average", key="weekday_breakdown_cb")
+                if selected_graph == "Total Requests per Month":
+                    show_daily_breakdown = st.checkbox("Show Daily Breakdown", key="daily_breakdown_cb")
 
-    if selected_graph == "Requests by Hour (%) Average":
-        show_monthly_breakdown = st.sidebar.checkbox("Show Monthly Breakdown", key="monthly_breakdown_cb")
-    if selected_graph == "Daily Requests by Weekday (Mon-Fri)":
-        show_weekday_breakdown = st.sidebar.checkbox("Show Monthly Weekday Average", key="weekday_breakdown_cb")
-    if selected_graph == "Total Requests per Month":
-        show_daily_breakdown = st.sidebar.checkbox("Show Daily Breakdown", key="daily_breakdown_cb")
+            with col2:
+                # --- Filtering Options ---
+                min_date = df_cleaned['Time'].min().date()
+                max_date = df_cleaned['Time'].max().date()
+                start_date, end_date = st.date_input('Filter by Date Range', [min_date, max_date])
 
-    # --- Filtering Options ---
-    st.sidebar.header("Filter Data")
-    
-    # Filter by Hardware using an expander with checkboxes
-    with st.sidebar.expander("Filter by Hardware", expanded=True):
-        all_hardware = df_cleaned['Hardware'].unique()
-        selected_hardware = []
-        for hardware_type in all_hardware:
-            if st.checkbox(hardware_type, value=True, key=f"hardware_{hardware_type}"):
-                selected_hardware.append(hardware_type)
+                all_hardware = sorted(df_cleaned['Hardware'].unique())
+                selected_hardware = st.multiselect("Filter by Hardware", all_hardware, default=all_hardware)
+                
+                all_requesters = sorted(df_cleaned['Requester'].unique())
+                selected_requesters = st.multiselect("Filter by Requester", all_requesters, default=all_requesters)
 
-    # Filter by Requester with search, select/deselect all, and scrollable list
-    st.sidebar.subheader("Filter by Requester")
-    
-    # Select/Deselect All checkbox
-    select_all_requesters = st.sidebar.checkbox("Select/Deselect All Requesters", value=True)
-    
-    requester_search = st.sidebar.text_input("Search Requesters")
-    
-    all_requesters = sorted(df_cleaned['Requester'].unique())
-    if requester_search:
-        filtered_requesters = [r for r in all_requesters if requester_search.lower() in r.lower()]
-    else:
-        filtered_requesters = all_requesters
+        # Apply filters
+        filtered_df = df_cleaned[
+            (df_cleaned['Hardware'].isin(selected_hardware)) &
+            (df_cleaned['Requester'].isin(selected_requesters)) &
+            (df_cleaned['Time'].dt.date >= start_date) &
+            (df_cleaned['Time'].dt.date <= end_date)
+        ]
 
-    # Create a scrollable container for the checkboxes
-    requester_container = st.sidebar.container(height=200)
-    selected_requesters = []
-    with requester_container:
-        for requester in filtered_requesters:
-            if st.checkbox(requester, value=select_all_requesters, key=f"requester_{requester}"):
-                selected_requesters.append(requester)
+        # --- Display Graphs ---
+        st.header(selected_graph)
+        graph_function = graph_options[selected_graph]
 
-    # Filter by Date Range
-    min_date = df_cleaned['Time'].min().date()
-    max_date = df_cleaned['Time'].max().date()
-    start_date = st.sidebar.date_input('Start date', min_date)
-    end_date = st.sidebar.date_input('End date', max_date)
-
-    # Apply filters
-    filtered_df = df_cleaned[
-        (df_cleaned['Hardware'].isin(selected_hardware)) &
-        (df_cleaned['Requester'].isin(selected_requesters)) &
-        (df_cleaned['Time'].dt.date >= start_date) &
-        (df_cleaned['Time'].dt.date <= end_date)
-    ]
-
-    st.header(selected_graph)
-    graph_function = graph_options[selected_graph]
-
-    # Special handling for the new analysis mode, which uses the full dataset
-    if selected_graph in ["Hardware Analysis", "Analysis by Engineer"]:
-        graph_function(df_cleaned)
-    else:
-        # All other graphs use the data filtered by the sidebar
-        if not filtered_df.empty:
-            graph_function(filtered_df)
+        if selected_graph in ["Hardware Analysis", "Analysis by Engineer"]:
+            graph_function(df_cleaned)
         else:
-            st.warning("No data available for the selected filters.")
+            if not filtered_df.empty:
+                graph_function(filtered_df)
+            else:
+                st.warning("No data available for the selected filters.")
 
-    # --- Conditional Monthly Breakdown ---
-    if selected_graph == "Requests by Hour (%) Average" and show_monthly_breakdown:
-        if not filtered_df.empty:
-            st.header("Monthly Breakdown: Requests by Hour (%) Average")
-            unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+        # --- Conditional Monthly Breakdown ---
+        if selected_graph == "Requests by Hour (%) Average" and show_monthly_breakdown:
+            if not filtered_df.empty:
+                st.header("Monthly Breakdown: Requests by Hour (%) Average")
+                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
 
-            for month in unique_months:
-                monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
-                if not monthly_df.empty:
-                    st.subheader(f"Analysis for {month.strftime('%B %Y')}")
-                    
-                    monthly_df['Hour'] = monthly_df['Time'].dt.hour
-                    df_filtered_by_hour = monthly_df[(monthly_df['Hour'] >= 7) & (monthly_df['Hour'] <= 18)]
+                for month in unique_months:
+                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                    if not monthly_df.empty:
+                        st.subheader(f"Analysis for {month.strftime('%B %Y')}")
+                        
+                        monthly_df['Hour'] = monthly_df['Time'].dt.hour
+                        df_filtered_by_hour = monthly_df[(monthly_df['Hour'] >= 7) & (monthly_df['Hour'] <= 18)]
 
-                    if df_filtered_by_hour.empty:
-                        st.warning(f"No request data available between 7 AM and 6 PM for {month.strftime('%B %Y')}.")
-                        continue
+                        if df_filtered_by_hour.empty:
+                            st.warning(f"No request data available between 7 AM and 6 PM for {month.strftime('%B %Y')}.")
+                            continue
 
-                    hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
-                    all_hours = pd.Index(range(7, 19), name="Hour")
-                    hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
-                    
-                    fig, ax = plt.subplots(figsize=(12, 6))
-                    bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='viridis', ax=ax)
-                    ax.set_title(f'Requests by Hour (%) for {month.strftime("%B %Y")}', fontsize=16)
-                    ax.set_xlabel('Hour of the Day', fontsize=12)
-                    ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
-                    
-                    for bar in bars.patches:
-                        ax.annotate(f'{bar.get_height():.1f}%',
-                                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                                    ha='center', va='center',
-                                    size=10, xytext=(0, 8),
-                                    textcoords='offset points')
-
-                    ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
-                    st.pyplot(fig)
-
-    if selected_graph == "Daily Requests by Weekday (Mon-Fri)" and show_weekday_breakdown:
-        if not filtered_df.empty:
-            st.header("Monthly Breakdown: Average Daily Requests by Weekday")
-            unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
-
-            for month in unique_months:
-                monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
-                if not monthly_df.empty:
-                    st.subheader(f"Analysis for {month.strftime('%B %Y')}")
-                    
-                    monthly_df['Weekday'] = monthly_df['Time'].dt.day_name()
-                    weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-                    df_weekdays = monthly_df[monthly_df['Weekday'].isin(weekday_order)]
-
-                    if df_weekdays.empty:
-                        st.warning(f"No weekday data for {month.strftime('%B %Y')}.")
-                        continue
-                    
-                    num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
-                    if num_weeks < 1:
-                        num_weeks = 1
-
-                    weekday_counts = df_weekdays['Weekday'].value_counts()
-                    average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
-
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    bars = sns.barplot(x=average_counts.index, y=average_counts.values, palette='crest', ax=ax)
-                    ax.set_title(f'Average Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
-                    ax.set_xlabel('Day of the Week', fontsize=12)
-                    ax.set_ylabel('Average Number of Requests', fontsize=12)
-                    
-                    for bar in bars.patches:
-                        ax.annotate(f'{bar.get_height():.1f}',
-                                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                                    ha='center', va='center',
-                                    size=10, xytext=(0, 8),
-                                    textcoords='offset points')
-                    st.pyplot(fig)
-
-    if selected_graph == "Total Requests per Month" and show_daily_breakdown:
-        if not filtered_df.empty:
-            st.header("Daily Breakdown of Total Requests")
-            unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
-
-            for month in unique_months:
-                monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
-                if not monthly_df.empty:
-                    st.subheader(f"Daily Requests for {month.strftime('%B %Y')}")
-                    
-                    daily_counts = monthly_df['Time'].dt.date.value_counts()
-                    
-                    # Create a full date range for the month
-                    start_of_month = month.to_timestamp()
-                    end_of_month = start_of_month + pd.offsets.MonthEnd(1)
-                    all_days_in_month = pd.date_range(start=start_of_month, end=end_of_month, freq='D').date
-                    
-                    # Reindex the daily counts to include all days, filling missing with 0
-                    daily_counts.index = pd.to_datetime(daily_counts.index)
-                    daily_counts = daily_counts.reindex(pd.to_datetime(all_days_in_month), fill_value=0)
-
-                    fig, ax = plt.subplots(figsize=(15, 6))
-                    bars = sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
-                    ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
-                    ax.set_xlabel('Date', fontsize=12)
-                    ax.set_ylabel('Number of Requests', fontsize=12)
-                    
-                    # Calculate weekly totals to find percentages
-                    daily_counts_df = daily_counts.reset_index()
-                    daily_counts_df.columns = ['Date', 'Count']
-                    daily_counts_df['Week'] = pd.to_datetime(daily_counts_df['Date']).dt.to_period('W')
-                    weekly_totals = daily_counts_df.groupby('Week')['Count'].transform('sum')
-                    
-                    # Avoid division by zero for weeks with no requests
-                    weekly_percentages = (daily_counts_df['Count'] / weekly_totals.replace(0, 1)) * 100
-
-                    # Add percentage labels on top of each bar
-                    for i, bar in enumerate(bars.patches):
-                        if bar.get_height() > 0: # Only label bars with requests
-                            # Add percentage on top
-                            ax.annotate(f'{weekly_percentages[i]:.1f}%',
+                        hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
+                        all_hours = pd.Index(range(7, 19), name="Hour")
+                        hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
+                        
+                        fig, ax = plt.subplots(figsize=(12, 6))
+                        bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='viridis', ax=ax)
+                        ax.set_title(f'Requests by Hour (%) for {month.strftime("%B %Y")}', fontsize=16)
+                        ax.set_xlabel('Hour of the Day', fontsize=12)
+                        ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
+                        
+                        for bar in bars.patches:
+                            ax.annotate(f'{bar.get_height():.1f}%',
                                         (bar.get_x() + bar.get_width() / 2, bar.get_height()),
                                         ha='center', va='center',
-                                        size=8, xytext=(0, 8),
+                                        size=10, xytext=(0, 8),
                                         textcoords='offset points')
-                            # Add two-letter weekday abbreviation at the bottom
-                            day_of_week = daily_counts.index[i].strftime('%a')[:2]
-                            ax.annotate(day_of_week,
-                                        (bar.get_x() + bar.get_width() / 2, 0),
-                                        ha='center', va='bottom',
-                                        size=7, xytext=(0, 2),
-                                        textcoords='offset points',
-                                        color='gray')
 
-                    # Format the x-axis labels to show only Mondays
-                    date_labels = [item.get_text() for item in ax.get_xticklabels()]
-                    new_labels = [label if pd.to_datetime(label).weekday() == 0 else '' for label in date_labels]
-                    ax.set_xticklabels(new_labels, rotation=45, ha="right")
+                        ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
+                        st.pyplot(fig)
 
-                    ax.grid(axis='y')
-                    st.pyplot(fig)
+        if selected_graph == "Daily Requests by Weekday (Mon-Fri)" and show_weekday_breakdown:
+            if not filtered_df.empty:
+                st.header("Monthly Breakdown: Average Daily Requests by Weekday")
+                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
 
-    with tab2:
-        st.header("Requester Language Codes")
-        
-        # Get unique requesters
-        unique_requesters = sorted(df_cleaned['Requester'].unique())
-        
-        # Create a dataframe for the data sheet
-        data_sheet_df = pd.DataFrame(unique_requesters, columns=["Requester"])
-        
-        # Add a column for language code selection
-        data_sheet_df['Language Code'] = ""
-        
-        # Display the editable dataframe
-        edited_df = st.data_editor(
-            data_sheet_df,
-            column_config={
-                "Language Code": st.column_config.SelectboxColumn(
-                    "Language Code",
-                    help="Select the language code for the requester",
-                    options=list(LANGUAGE_CODES.keys()),
-                    required=False,
-                )
-            },
-            hide_index=True,
-        )
+                for month in unique_months:
+                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                    if not monthly_df.empty:
+                        st.subheader(f"Analysis for {month.strftime('%B %Y')}")
+                        
+                        monthly_df['Weekday'] = monthly_df['Time'].dt.day_name()
+                        weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                        df_weekdays = monthly_df[monthly_df['Weekday'].isin(weekday_order)]
 
-else:
-    st.info("Please upload a CSV file to get started.")
+                        if df_weekdays.empty:
+                            st.warning(f"No weekday data for {month.strftime('%B %Y')}.")
+                            continue
+                        
+                        num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
+                        if num_weeks < 1:
+                            num_weeks = 1
+
+                        weekday_counts = df_weekdays['Weekday'].value_counts()
+                        average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
+
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        bars = sns.barplot(x=average_counts.index, y=average_counts.values, palette='crest', ax=ax)
+                        ax.set_title(f'Average Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
+                        ax.set_xlabel('Day of the Week', fontsize=12)
+                        ax.set_ylabel('Average Number of Requests', fontsize=12)
+                        
+                        for bar in bars.patches:
+                            ax.annotate(f'{bar.get_height():.1f}',
+                                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                        ha='center', va='center',
+                                        size=10, xytext=(0, 8),
+                                        textcoords='offset points')
+                        st.pyplot(fig)
+
+        if selected_graph == "Total Requests per Month" and show_daily_breakdown:
+            if not filtered_df.empty:
+                st.header("Daily Breakdown of Total Requests")
+                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+
+                for month in unique_months:
+                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                    if not monthly_df.empty:
+                        st.subheader(f"Daily Requests for {month.strftime('%B %Y')}")
+                        
+                        daily_counts = monthly_df['Time'].dt.date.value_counts()
+                        
+                        start_of_month = month.to_timestamp()
+                        end_of_month = start_of_month + pd.offsets.MonthEnd(1)
+                        all_days_in_month = pd.date_range(start=start_of_month, end=end_of_month, freq='D').date
+                        
+                        daily_counts.index = pd.to_datetime(daily_counts.index)
+                        daily_counts = daily_counts.reindex(pd.to_datetime(all_days_in_month), fill_value=0)
+
+                        fig, ax = plt.subplots(figsize=(15, 6))
+                        bars = sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
+                        ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
+                        ax.set_xlabel('Date', fontsize=12)
+                        ax.set_ylabel('Number of Requests', fontsize=12)
+                        
+                        daily_counts_df = daily_counts.reset_index()
+                        daily_counts_df.columns = ['Date', 'Count']
+                        daily_counts_df['Week'] = pd.to_datetime(daily_counts_df['Date']).dt.to_period('W')
+                        weekly_totals = daily_counts_df.groupby('Week')['Count'].transform('sum')
+                        
+                        weekly_percentages = (daily_counts_df['Count'] / weekly_totals.replace(0, 1)) * 100
+
+                        for i, bar in enumerate(bars.patches):
+                            if bar.get_height() > 0:
+                                ax.annotate(f'{weekly_percentages[i]:.1f}%',
+                                            (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                            ha='center', va='center',
+                                            size=8, xytext=(0, 8),
+                                            textcoords='offset points')
+                                day_of_week = daily_counts.index[i].strftime('%a')[:2]
+                                ax.annotate(day_of_week,
+                                            (bar.get_x() + bar.get_width() / 2, 0),
+                                            ha='center', va='bottom',
+                                            size=7, xytext=(0, 2),
+                                            textcoords='offset points',
+                                            color='gray')
+
+                        date_labels = [item.get_text() for item in ax.get_xticklabels()]
+                        new_labels = [label if pd.to_datetime(label).weekday() == 0 else '' for label in date_labels]
+                        ax.set_xticklabels(new_labels, rotation=45, ha="right")
+
+                        ax.grid(axis='y')
+                        st.pyplot(fig)
+    else:
+        st.info("Please upload a CSV file in the 'Data Upload' tab to get started.")
