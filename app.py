@@ -212,7 +212,6 @@ def plot_top_languages(df, language_df):
         st.warning("Could not map any assigned language codes to known languages.")
         return
 
-    # Filter original counts to only include successfully mapped languages
     valid_codes = [code for code, name in LANGUAGE_CODES.items() if name in language_names_map.values]
     language_counts = language_counts[language_counts.index.isin(valid_codes)]
 
@@ -371,18 +370,9 @@ with tab2:
             key="data_editor"
         )
         
-        if 'last_saved_df' not in st.session_state:
-            st.session_state.last_saved_df = merged_df.copy()
-        
-        if not edited_df.equals(st.session_state.last_saved_df):
-            save_language_assignments(edited_df)
-            st.session_state.language_data = edited_df.copy()
-            st.session_state.last_saved_df = edited_df.copy()
-
         if st.button("Save Assignments"):
             save_language_assignments(edited_df)
             st.session_state.language_data = edited_df.copy()
-            st.session_state.last_saved_df = edited_df.copy()
             st.success("Language assignments explicitly saved to language_assignments.csv!")
     else:
         st.info("Please upload a CSV file using the sidebar to get started.")
