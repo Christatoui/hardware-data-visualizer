@@ -251,7 +251,8 @@ LANGUAGE_CODES = {
 # Load data and initialize session state
 if 'df_cleaned' not in st.session_state:
     st.session_state.df_cleaned = None
-st.session_state.language_data = load_language_assignments()
+if 'language_data' not in st.session_state:
+    st.session_state.language_data = load_language_assignments()
 
 st.sidebar.title("File Upload")
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type="csv")
@@ -338,16 +339,13 @@ with tab2:
         
         unique_requesters_df = pd.DataFrame(df_cleaned['Requester'].unique(), columns=['Requester'])
         
-        # Merge with existing assignments to pre-populate
         current_assignments = st.session_state.language_data
         if not current_assignments.empty:
-            # Use outer merge to keep all requesters from both lists
             merged_df = pd.merge(unique_requesters_df, current_assignments, on='Requester', how='outer').fillna('')
         else:
             merged_df = unique_requesters_df
             merged_df['Language Code'] = ''
 
-        # Ensure no duplicate requesters before showing editor
         merged_df.drop_duplicates(subset=['Requester'], inplace=True)
 
         edited_df = st.data_editor(
@@ -356,12 +354,23 @@ with tab2:
                 "Language Code": st.column_config.SelectboxColumn("Language Code", help="Select the language code for the requester", options=list(LANGUAGE_CODES.keys()), required=False)
             },
             hide_index=True,
+            key="data_editor"
         )
         
-        # Save any changes back to the file
-        if not edited_df.equals(merged_df):
+        # Automatic saving on edit
+        if 'last_saved_df' not in st.session_state:
+            st.session_state.last_saved_df = merged_df
+        
+        if not edited_df.equals(st.session_state.last_saved_df):
             save_language_assignments(edited_df)
             st.session_state.language_data = edited_df
-            st.success("Language assignments saved!")
+            st.session_state.last_saved_df = edited_df
+
+        # Manual save button for user confirmation
+        if st.button("Save Assignments"):
+            save_language_assignments(edited_df)
+            st.session_state.language_data = edited_df
+            st.session_state.last_saved_df = edited_df
+            st.success("Language assignments explicitly saved to language_assignments.csv!")
     else:
         st.info("Please upload a CSV file using the sidebar to get started.")
