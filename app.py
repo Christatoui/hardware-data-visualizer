@@ -347,8 +347,35 @@ with tab2:
                         if st.checkbox(hardware_type, value=select_all_hardware, key=f"hardware_{hardware_type}"):
                             selected_hardware.append(hardware_type)
                 
+                requester_filter_option = st.selectbox(
+                    "Filter by Requester",
+                    options=["Select All", "Deselect All", "Custom"],
+                    index=0
+                )
                 all_requesters = sorted(df_cleaned['Requester'].unique())
-                selected_requesters = st.multiselect("Filter by Requester", all_requesters, default=all_requesters)
+
+                if requester_filter_option == "Select All":
+                    selected_requesters = all_requesters
+                elif requester_filter_option == "Deselect All":
+                    selected_requesters = []
+                else:  # Custom
+                    st.subheader("Custom Requester Selection")
+                    
+                    select_all_custom = st.checkbox("Select/Deselect All in Custom List", value=True, key="custom_select_all")
+                    
+                    requester_search = st.text_input("Search Requesters", key="custom_requester_search")
+                    
+                    if requester_search:
+                        filtered_requesters = [r for r in all_requesters if requester_search.lower() in r.lower()]
+                    else:
+                        filtered_requesters = all_requesters
+
+                    requester_container = st.container(height=200)
+                    selected_requesters = []
+                    with requester_container:
+                        for requester in filtered_requesters:
+                            if st.checkbox(requester, value=select_all_custom, key=f"custom_requester_{requester}"):
+                                selected_requesters.append(requester)
 
         # Apply filters
         filtered_df = df_cleaned[
