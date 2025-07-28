@@ -44,6 +44,8 @@ def load_language_assignments():
 
 def save_language_assignments(df):
     """Saves language assignments to the CSV file."""
+    # Ensure the directory exists before saving the file
+    os.makedirs(os.path.dirname(ASSIGNMENT_FILE), exist_ok=True)
     df.to_csv(ASSIGNMENT_FILE, index=False)
 
 # --- Plotting Functions ---
