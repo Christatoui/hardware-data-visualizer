@@ -6,7 +6,6 @@ import os
 
 # --- Matplotlib settings for SVG plots ---
 plt.rcParams['figure.facecolor'] = 'white'
-st.set_option('deprecation.showPyplotGlobalUse', False)
 # --- Constants ---
 ASSIGNMENT_FILE = 'AppRoo/FrontEnd/language_assignments.csv'
 
@@ -60,7 +59,7 @@ def plot_hardware_counts(df):
     ax.set_ylabel('Hardware Type', fontsize=12)
     for bar in bars.patches:
         ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
 def plot_top_requesters(df):
     st.subheader("Top 10 Hardware Requesters")
@@ -72,7 +71,7 @@ def plot_top_requesters(df):
     ax.set_ylabel('Requester', fontsize=12)
     for bar in bars1.patches:
         ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
     st.subheader("Drill-down: Top 5 Items for a Requester")
     selected_requester = st.selectbox("Select a requester to see their top 5 items:", top_10_requesters.index)
@@ -87,7 +86,7 @@ def plot_top_requesters(df):
             ax2.set_ylabel("Hardware Type", fontsize=10)
             for bar in bars2.patches:
                 ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
-            st.pyplot(fig2)
+            st.pyplot(fig2, use_container_width=True)
         else:
             st.info(f"No hardware request data found for {selected_requester}.")
 
@@ -108,7 +107,7 @@ def plot_requests_by_hour(df):
     for bar in bars.patches:
         ax.annotate(f'{bar.get_height():.1f}%', (bar.get_x() + bar.get_width() / 2, bar.get_height()), ha='center', va='center', size=10, xytext=(0, 8), textcoords='offset points')
     ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
 def plot_daily_requests_by_weekday(df):
     df['Weekday'] = df['Time'].dt.day_name()
@@ -128,7 +127,7 @@ def plot_daily_requests_by_weekday(df):
     ax.set_ylabel('Average Number of Requests', fontsize=12)
     for bar in bars.patches:
         ax.annotate(f'{bar.get_height():.1f}', (bar.get_x() + bar.get_width() / 2, bar.get_height()), ha='center', va='center', size=10, xytext=(0, 8), textcoords='offset points')
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
 def plot_total_requests_per_month(df):
     df['Month'] = df['Time'].dt.to_period('M')
@@ -142,7 +141,7 @@ def plot_total_requests_per_month(df):
     for bar in bars.patches:
         ax.annotate(f'{int(bar.get_height())}', (bar.get_x() + bar.get_width() / 2, bar.get_height()), ha='center', va='center', size=10, xytext=(0, 8), textcoords='offset points')
     ax.tick_params(axis='x', rotation=45)
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
 def plot_hardware_analysis(df):
     plot_hardware_counts(df)
@@ -165,7 +164,7 @@ def plot_hardware_analysis(df):
         ax.set_ylabel('Requester', fontsize=12)
         for bar in bars.patches:
             ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
-        st.pyplot(fig)
+        st.pyplot(fig, use_container_width=True)
 
 def plot_engineer_specific_analysis(df):
     all_engineers = sorted(df['Requester'].unique())
@@ -195,7 +194,7 @@ def plot_engineer_specific_analysis(df):
             ax.annotate(f'{hardware_percentages.iloc[i]:.1f}%', (bar.get_width(), bar.get_y() + bar.get_height() / 2), ha='center', va='center', size=10, xytext=(20, 0), textcoords='offset points')
             ax.annotate(f'{int(bar.get_width())}', (bar.get_width(), bar.get_y() + bar.get_height() / 2), ha='center', va='center', size=10, xytext=(-20, 0), textcoords='offset points', color='white')
         ax.set_xlim(right=ax.get_xlim()[1] + 1)
-        st.pyplot(fig)
+        st.pyplot(fig, use_container_width=True)
 
 def plot_top_languages(df, language_df):
     st.header("Top 10 Languages by Total Requests")
@@ -230,7 +229,7 @@ def plot_top_languages(df, language_df):
     ax.set_ylabel('Language', fontsize=12)
     for bar in bars.patches:
         ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
 
     st.header("Drill-down: Top 5 Devices by Language")
     code_to_name = {v: k for k, v in LANGUAGE_CODES.items()}
@@ -251,7 +250,7 @@ def plot_top_languages(df, language_df):
             ax2.set_ylabel("Hardware Type", fontsize=10)
             for bar in bars2.patches:
                 ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
-            st.pyplot(fig2)
+            st.pyplot(fig2, use_container_width=True)
         else:
             st.info(f"No hardware request data found for requesters in {selected_language_name}.")
 
