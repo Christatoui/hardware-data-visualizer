@@ -195,7 +195,7 @@ def plot_engineer_specific_analysis(df):
         st.pyplot(fig)
 
 def plot_top_languages(df, language_df):
-    st.header("Top 10 Languages by Requester Count")
+    st.header("Top 10 Languages by Total Requests")
     if language_df.empty or 'Language Code' not in language_df.columns or language_df['Language Code'].dropna().empty:
         st.warning("No language codes have been assigned in the 'Data Sheet' tab. Please assign them to see this graph.")
         return
@@ -205,7 +205,12 @@ def plot_top_languages(df, language_df):
         st.warning("No valid language codes found in assignments. Please check the 'Data Sheet' tab.")
         return
 
-    language_counts = valid_assigned_languages['Language Code'].value_counts().nlargest(10)
+    df_with_languages = pd.merge(df, valid_assigned_languages, on='Requester', how='inner')
+    if df_with_languages.empty:
+        st.warning("No requests found for the requesters with assigned languages.")
+        return
+
+    language_counts = df_with_languages['Language Code'].value_counts().nlargest(10)
     language_names_map = language_counts.index.map(LANGUAGE_CODES).dropna()
     
     if language_names_map.empty:
@@ -217,8 +222,8 @@ def plot_top_languages(df, language_df):
 
     fig, ax = plt.subplots(figsize=(12, 8))
     bars = sns.barplot(x=language_counts.values, y=language_names_map, palette='rocket', ax=ax)
-    ax.set_title('Top 10 Languages by Number of Requesters', fontsize=16)
-    ax.set_xlabel('Number of Requesters', fontsize=12)
+    ax.set_title('Top 10 Languages by Total Requests', fontsize=16)
+    ax.set_xlabel('Total Number of Requests', fontsize=12)
     ax.set_ylabel('Language', fontsize=12)
     for bar in bars.patches:
         ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, f'{int(bar.get_width())}', va='center', ha='left', size=10)
