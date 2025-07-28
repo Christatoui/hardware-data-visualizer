@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+# --- Matplotlib settings for SVG plots ---
+plt.rcParams['figure.facecolor'] = 'white'
+st.set_option('deprecation.showPyplotGlobalUse', False)
 # --- Constants ---
 ASSIGNMENT_FILE = 'AppRoo/FrontEnd/language_assignments.csv'
 
