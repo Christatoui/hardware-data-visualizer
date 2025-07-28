@@ -283,6 +283,70 @@ def plot_engineer_specific_analysis(df):
         
         st.pyplot(fig)
 
+def plot_top_languages(df, language_df):
+    """Plots top 10 languages by requester count and top 5 devices for a selected language."""
+    st.header("Top 10 Languages by Requester Count")
+
+    if 'Requester' not in language_df.columns or 'Language Code' not in language_df.columns:
+        st.error("Data Sheet is missing 'Requester' or 'Language Code' columns.")
+        return
+
+    assigned_languages = language_df.dropna(subset=['Language Code'])
+    assigned_languages = assigned_languages[assigned_languages['Language Code'] != '']
+
+    if assigned_languages.empty:
+        st.warning("No language codes have been assigned in the 'Data Sheet' tab. Please assign them to see this graph.")
+        return
+
+    language_counts = assigned_languages['Language Code'].value_counts().nlargest(10)
+    
+    language_counts.index = language_counts.index.map(LANGUAGE_CODES)
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    bars = sns.barplot(x=language_counts.values, y=language_counts.index, palette='rocket', ax=ax)
+    ax.set_title('Top 10 Languages by Number of Requesters', fontsize=16)
+    ax.set_xlabel('Number of Requesters', fontsize=12)
+    ax.set_ylabel('Language', fontsize=12)
+
+    for bar in bars.patches:
+        ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
+                f'{int(bar.get_width())}',
+                va='center', ha='left', size=10)
+    st.pyplot(fig)
+
+    st.header("Drill-down: Top 5 Devices by Language")
+    
+    code_to_name = {v: k for k, v in LANGUAGE_CODES.items()}
+    selected_language_name = st.selectbox("Select a language to see its top 5 devices:", language_counts.index)
+
+    if selected_language_name:
+        selected_language_code = code_to_name[selected_language_name]
+        
+        requesters_in_language = assigned_languages[assigned_languages['Language Code'] == selected_language_code]['Requester'].tolist()
+        
+        language_specific_df = df[df['Requester'].isin(requesters_in_language)]
+
+        if language_specific_df.empty:
+            st.info(f"No request data found for the language: {selected_language_name}")
+            return
+
+        top_5_devices = language_specific_df['Hardware'].value_counts().nlargest(5)
+
+        if not top_5_devices.empty:
+            fig2, ax2 = plt.subplots(figsize=(10, 6))
+            bars2 = sns.barplot(x=top_5_devices.values, y=top_5_devices.index, palette='mako', ax=ax2)
+            ax2.set_title(f"Top 5 Hardware Requests in {selected_language_name}", fontsize=14)
+            ax2.set_xlabel("Number of Requests", fontsize=10)
+            ax2.set_ylabel("Hardware Type", fontsize=10)
+
+            for bar in bars2.patches:
+                ax2.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2,
+                        f'{int(bar.get_width())}',
+                        va='center', ha='left', size=10)
+            st.pyplot(fig2)
+        else:
+            st.info(f"No hardware request data found for requesters in {selected_language_name}.")
+
 # --- Streamlit App ---
 
 st.set_page_config(layout="wide")
@@ -303,6 +367,8 @@ LANGUAGE_CODES = {
 # Initialize session state
 if 'df_cleaned' not in st.session_state:
     st.session_state.df_cleaned = None
+if 'language_data' not in st.session_state:
+    st.session_state.language_data = None
 
 # --- Sidebar ---
 st.sidebar.title("File Upload")
@@ -323,6 +389,7 @@ with tab1:
         
         # --- Graph Options ---
         graph_options = {
+            "Top 10 by Language": plot_top_languages,
             "Top 10 Requesters": plot_top_requesters,
             "Analysis by Engineer": plot_engineer_specific_analysis,
             "Total Requests per Month": plot_total_requests_per_month,
@@ -399,7 +466,12 @@ with tab1:
         st.header(selected_graph)
         graph_function = graph_options[selected_graph]
 
-        if selected_graph in ["Hardware Analysis", "Analysis by Engineer"]:
+        if selected_graph == "Top 10 by Language":
+            if st.session_state.language_data is not None:
+                graph_function(filtered_df, st.session_state.language_data)
+            else:
+                st.warning("Please assign language codes in the 'Data Sheet' tab first.")
+        elif selected_graph in ["Hardware Analysis", "Analysis by Engineer"]:
             graph_function(df_cleaned)
         else:
             if not filtered_df.empty:
@@ -547,10 +619,18 @@ with tab2:
         
         unique_requesters = sorted(df_cleaned['Requester'].unique())
         
+        # Initialize the data sheet dataframe
         data_sheet_df = pd.DataFrame(unique_requesters, columns=["Requester"])
-        
         data_sheet_df['Language Code'] = ""
         
+        # If language data already exists in session state, use it
+        if st.session_state.language_data is not None:
+            # Merge to preserve existing selections
+            # This ensures that if the underlying data changes, we don't lose old assignments
+            existing_data = st.session_state.language_data
+            data_sheet_df = pd.merge(data_sheet_df[['Requester']], existing_data, on='Requester', how='left').fillna('')
+
+
         edited_df = st.data_editor(
             data_sheet_df,
             column_config={
@@ -563,5 +643,6 @@ with tab2:
             },
             hide_index=True,
         )
+        st.session_state.language_data = edited_df
     else:
         st.info("Please upload a CSV file using the sidebar to get started.")
