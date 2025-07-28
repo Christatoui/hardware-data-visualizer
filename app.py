@@ -15,6 +15,9 @@ def clean_data(df):
     df.loc[df['Hardware'].str.contains('^PC', case=False, na=False), 'Hardware'] = 'PC'
     df.loc[df['Hardware'].str.contains('^Windows PC', case=False, na=False), 'Hardware'] = 'PC'
     df.loc[df['Hardware'].str.contains('Other', case=False, na=False), 'Hardware'] = 'Other'
+    
+    # Normalize requester names by removing (V) suffix
+    df['Requester'] = df['Requester'].str.replace(r'\s*\([Vv]\)\s*$', '', regex=True).str.strip()
 
     def parse_dates(date_str):
         for fmt in ('%b %d, %Y, %I:%M:%S %p', '%B %dth, %Y at %I:%M %p UTC', '%B %d, %Y, %I:%M:%S %p', ',', 'Today'):
