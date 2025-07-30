@@ -349,6 +349,137 @@ with tab1:
                 graph_function(filtered_df)
             else:
                 st.warning("No data available for the selected filters.")
+        
+        # --- Conditional Monthly Breakdown ---
+        if selected_graph == "Requests by Hour (%) Average" and show_monthly_breakdown:
+            if not filtered_df.empty:
+                st.header("Monthly Breakdown: Requests by Hour (%) Average")
+                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+
+                for month in unique_months:
+                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                    if not monthly_df.empty:
+                        st.subheader(f"Analysis for {month.strftime('%B %Y')}")
+                        
+                        monthly_df['Hour'] = monthly_df['Time'].dt.hour
+                        df_filtered_by_hour = monthly_df[(monthly_df['Hour'] >= 7) & (monthly_df['Hour'] <= 18)]
+
+                        if df_filtered_by_hour.empty:
+                            st.warning(f"No request data available between 7 AM and 6 PM for {month.strftime('%B %Y')}.")
+                            continue
+
+                        hourly_counts = df_filtered_by_hour['Hour'].value_counts(normalize=True) * 100
+                        all_hours = pd.Index(range(7, 19), name="Hour")
+                        hourly_counts = hourly_counts.reindex(all_hours, fill_value=0)
+                        
+                        fig, ax = plt.subplots(figsize=(12, 6))
+                        bars = sns.barplot(x=hourly_counts.index, y=hourly_counts.values, palette='viridis', ax=ax)
+                        ax.set_title(f'Requests by Hour (%) for {month.strftime("%B %Y")}', fontsize=16)
+                        ax.set_xlabel('Hour of the Day', fontsize=12)
+                        ax.set_ylabel('Percentage of Requests (%)', fontsize=12)
+                        
+                        for bar in bars.patches:
+                            ax.annotate(f'{bar.get_height():.1f}%',
+                                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                        ha='center', va='center',
+                                        size=10, xytext=(0, 8),
+                                        textcoords='offset points')
+
+                        ax.set_xlim(left=-0.5, right=len(hourly_counts)-0.5)
+                        st.pyplot(fig, use_container_width=True)
+
+        if selected_graph == "Daily Requests by Weekday (Mon-Fri)" and show_weekday_breakdown:
+            if not filtered_df.empty:
+                st.header("Monthly Breakdown: Average Daily Requests by Weekday")
+                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+
+                for month in unique_months:
+                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                    if not monthly_df.empty:
+                        st.subheader(f"Analysis for {month.strftime('%B %Y')}")
+                        
+                        monthly_df['Weekday'] = monthly_df['Time'].dt.day_name()
+                        weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                        df_weekdays = monthly_df[monthly_df['Weekday'].isin(weekday_order)]
+
+                        if df_weekdays.empty:
+                            st.warning(f"No weekday data for {month.strftime('%B %Y')}.")
+                            continue
+                        
+                        num_weeks = (df_weekdays['Time'].max() - df_weekdays['Time'].min()).days / 7
+                        if num_weeks < 1:
+                            num_weeks = 1
+
+                        weekday_counts = df_weekdays['Weekday'].value_counts()
+                        average_counts = (weekday_counts / num_weeks).reindex(weekday_order)
+
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        bars = sns.barplot(x=average_counts.index, y=average_counts.values, palette='crest', ax=ax)
+                        ax.set_title(f'Average Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
+                        ax.set_xlabel('Day of the Week', fontsize=12)
+                        ax.set_ylabel('Average Number of Requests', fontsize=12)
+                        
+                        for bar in bars.patches:
+                            ax.annotate(f'{bar.get_height():.1f}',
+                                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                        ha='center', va='center',
+                                        size=10, xytext=(0, 8),
+                                        textcoords='offset points')
+                        st.pyplot(fig, use_container_width=True)
+
+        if selected_graph == "Total Requests per Month" and show_daily_breakdown:
+            if not filtered_df.empty:
+                st.header("Daily Breakdown of Total Requests")
+                unique_months = sorted(filtered_df['Time'].dt.to_period('M').unique())
+
+                for month in unique_months:
+                    monthly_df = filtered_df[filtered_df['Time'].dt.to_period('M') == month]
+                    if not monthly_df.empty:
+                        st.subheader(f"Daily Requests for {month.strftime('%B %Y')}")
+                        
+                        daily_counts = monthly_df['Time'].dt.date.value_counts()
+                        
+                        start_of_month = month.to_timestamp()
+                        end_of_month = start_of_month + pd.offsets.MonthEnd(1)
+                        all_days_in_month = pd.date_range(start=start_of_month, end=end_of_month, freq='D').date
+                        
+                        daily_counts.index = pd.to_datetime(daily_counts.index)
+                        daily_counts = daily_counts.reindex(pd.to_datetime(all_days_in_month), fill_value=0)
+
+                        fig, ax = plt.subplots(figsize=(15, 6))
+                        bars = sns.barplot(x=daily_counts.index, y=daily_counts.values, color='skyblue', ax=ax)
+                        ax.set_title(f'Daily Requests for {month.strftime("%B %Y")}', fontsize=16)
+                        ax.set_xlabel('Date', fontsize=12)
+                        ax.set_ylabel('Number of Requests', fontsize=12)
+                        
+                        daily_counts_df = daily_counts.reset_index()
+                        daily_counts_df.columns = ['Date', 'Count']
+                        daily_counts_df['Week'] = pd.to_datetime(daily_counts_df['Date']).dt.to_period('W')
+                        weekly_totals = daily_counts_df.groupby('Week')['Count'].transform('sum')
+                        
+                        weekly_percentages = (daily_counts_df['Count'] / weekly_totals.replace(0, 1)) * 100
+
+                        for i, bar in enumerate(bars.patches):
+                            if bar.get_height() > 0:
+                                ax.annotate(f'{weekly_percentages[i]:.1f}%',
+                                            (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                            ha='center', va='center',
+                                            size=8, xytext=(0, 8),
+                                            textcoords='offset points')
+                                day_of_week = daily_counts.index[i].strftime('%a')[:2]
+                                ax.annotate(day_of_week,
+                                            (bar.get_x() + bar.get_width() / 2, 0),
+                                            ha='center', va='bottom',
+                                            size=7, xytext=(0, 2),
+                                            textcoords='offset points',
+                                            color='gray')
+
+                        date_labels = [item.get_text() for item in ax.get_xticklabels()]
+                        new_labels = [label if pd.to_datetime(label).weekday() == 0 else '' for label in date_labels]
+                        ax.set_xticklabels(new_labels, rotation=45, ha="right")
+
+                        ax.grid(axis='y')
+                        st.pyplot(fig, use_container_width=True)
     else:
         st.info("Please upload a CSV file using the sidebar to get started.")
 
